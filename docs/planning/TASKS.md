@@ -3,7 +3,7 @@
 ## Phase 0: Pre-Hackathon Preparation
 
 ### Pre-Hackathon Setup
-- [ ] **T00a** (10 min) Verify Ollama running with `qwen3:32b` — test with a sample prompt
+- [x] **T00a** ~~Verify Ollama running with `qwen3:32b`~~ — **Dropped:** Ollama too slow; using cloud APIs (Anthropic) instead
 - [ ] **T00b** (10 min) Verify all 40 dataset DATA-DICTIONARY.md files exist and are readable
 - [ ] **T00c** (5 min) Verify LivingWithFire-DB api-reference/ files are current (re-fetch from API if needed)
 
@@ -13,33 +13,34 @@
 
 ## Phase 1: Data Layer Setup (Day 1, 4 hrs)
 
-### Dolt Database
-- [ ] **T01** (15 min) Install Dolt binary, verify `dolt version`
-- [ ] **T02** (15 min) `dolt init`, create database schema matching production EAV
-- [ ] **T03** (30 min) Import production CSVs: plants, values, attributes, sources, attribute_sources
-- [ ] **T04** (20 min) Create Claim/Warrant tables: warrants, conflicts, claims, claim_warrants, analysis_batches (see PROPOSALS-SCHEMA.md)
-- [ ] **T05** (10 min) Create indexes on key columns (plant_id, attribute_id, source_id, status)
-- [ ] **T06** (5 min) Initial commit: `dolt commit -m "production mirror v1"`
-- [ ] **T07** (10 min) Start Dolt SQL server, verify mysql client connection
+### Dolt Database — ✅ COMPLETED (`3f87073`)
+- [x] **T01** Install DoltgreSQL v0.55.6 (PostgreSQL wire protocol, not MySQL)
+- [x] **T02** Init database `lwf_staging`, create schema for all 13 production tables
+- [x] **T03** Import all 13 production CSVs (not just 4 core — includes nurseries, key_terms, etc.)
+- [x] **T04** Create Claim/Warrant tables (warrants, conflicts, claims, claim_warrants, analysis_batches)
+- [x] **T05** Create indexes on key columns
+- [x] **T06** Initial Dolt commit: `f3imeuite70s1bh1vcmni8nhg6em7oun`
+- [x] **T07** DoltgreSQL server on port 5433, verified via `psql`
 
-> **Depends on:** Nothing. Start here.
+> **Completed:** 2026-03-28 | **Task spec:** `docs/tasks/completed/001-dolt-setup.md`
+> **Note:** Used DoltgreSQL (PostgreSQL protocol) instead of Dolt (MySQL protocol). Schema corrections documented in task spec — `sources` table has 12 cols not 7, `"values"` requires quoting, ENUMs replaced with VARCHAR.
 
 ### Genkit Setup
 - [ ] **T08** (15 min) Initialize Genkit project: `npm install genkit @genkit-ai/core` + model plugins
 - [ ] **T09** (15 min) Configure model plugins (Claude via `@genkit-ai/anthropic` and/or Gemini via `@genkit-ai/google`)
 - [ ] **T10** (15 min) Create shared Genkit tools: `lookupProductionPlant`, `getDataDictionary`, `getSourceMetadata`
-- [ ] **T11** (10 min) Create Dolt query tool for Genkit flows
+- [ ] **T11** (10 min) Create DoltgreSQL query tool for Genkit flows (use `pg` client, port 5433)
 
-> **Depends on:** T07 (Dolt running)
+> **Depends on:** T07 (DoltgreSQL running) ✅
 
 ### Bootstrap Existing Warrants
 - [ ] **T12** (30 min) Convert existing production `values` into warrants: each existing value → warrant with `warrant_type: 'existing'`, preserving source_id provenance
 - [ ] **T13** (10 min) Dolt commit: `"bootstrap: converted 94,903 production values to warrants"`
 
-> **Depends on:** T04, T06
+> **Depends on:** T04 ✅, T06 ✅
 > **Critical:** This is what makes internal conflict detection possible.
 
-**Milestone: Lunch Day 1** — Dolt running, Genkit configured, production values bootstrapped as warrants
+**Milestone: Lunch Day 1** — ~~Dolt running~~ ✅, Genkit configured, production values bootstrapped as warrants
 
 ---
 
@@ -100,8 +101,8 @@
 
 ### Scaffold
 - [ ] **T29** (15 min) `npx create-next-app` with TS, Tailwind, App Router
-- [ ] **T30** (15 min) Install: shadcn/ui (table, card, badge, dialog, button, tabs, checkbox), mysql2
-- [ ] **T31** (15 min) Create Dolt connection utility (`lib/dolt.ts`)
+- [ ] **T30** (15 min) Install: shadcn/ui (table, card, badge, dialog, button, tabs, checkbox), pg
+- [ ] **T31** (15 min) Create DoltgreSQL connection utility (`lib/dolt.ts`) — use `pg` client, port 5433
 - [ ] **T32** (10 min) Create layout with nav: Dashboard, Claims, Warrants, Conflicts, History
 
 ### Dashboard

@@ -35,6 +35,10 @@ lwf-staging/
 .doltcfg/
 auth.db
 
+# ----- Genkit agent project -----
+genkit/node_modules/
+genkit/dist/
+
 # ----- Temp/cache -----
 *.tmp
 *.bak
