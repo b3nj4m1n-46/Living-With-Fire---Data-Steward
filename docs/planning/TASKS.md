@@ -88,17 +88,16 @@
 > **Completed:** 2026-03-28 | **Task spec:** `docs/tasks/completed/008-research-tools.md`
 > **Note:** Three tools: `getDatasetContext`, `searchDocumentIndex`, `navigateDocumentTree`. PageIndex RAG over 45+ pre-indexed knowledge base documents without vector embeddings.
 
-### First External Analysis
-- [ ] **T25** (30 min) Process FirePerformancePlants:
-  - matchPlantFlow → bulkEnhanceFlow → classifyConflictFlow
-  - Write warrants + conflicts to Dolt
-- [ ] **T26** (10 min) Dolt commit: `"analysis: FIRE-01, X warrants, Y conflicts"`
-- [ ] **T27** (30 min) Process WUCOLS (4,103 plants) — same pipeline
-- [ ] **T28** (10 min) Dolt commit for WUCOLS
+### First External Analysis — ✅ COMPLETED (`e3189ab`)
+- [x] **T25** Process FirePerformancePlants: matchPlantFlow → bulkEnhanceFlow → classifyConflictFlow, write warrants + conflicts to Dolt
+- [x] **T26** Dolt commit for FIRE-01
+- [x] **T27** Process WUCOLS (4,103 plants) — same pipeline
+- [x] **T28** Dolt commit for WUCOLS
 
-> **Depends on:** T14-T17 ✅, T18-T19 ✅, T20-T21
+> **Completed:** 2026-03-28 | **Task spec:** `docs/tasks/completed/009-first-external-analysis.md`
+> **Note:** Full end-to-end pipeline proven on FIRE-01 (541 plants) and WATER-01/WUCOLS (4,103 plants). Matcher → Schema Mapper → Warrant creation → Conflict detection all working.
 
-**Milestone: End of Day 1** — Internal conflicts detected, 2 datasets analyzed, warrants + conflicts in Dolt
+**Milestone: End of Day 1** — ✅ Internal conflicts detected, 2 datasets analyzed, warrants + conflicts in Dolt
 
 ---
 
