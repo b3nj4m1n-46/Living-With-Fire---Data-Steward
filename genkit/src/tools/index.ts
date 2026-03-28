@@ -8,6 +8,8 @@ export { getProductionAttributes } from './productionAttributes.js';
 export { sampleSourceData } from './sampleSourceData.js';
 export { getWarrantGroups } from './warrantGroups.js';
 export { writeConflict } from './writeConflict.js';
+export { searchDocumentIndex } from './searchDocumentIndex.js';
+export { navigateDocumentTree } from './navigateDocumentTree.js';
 
 // Convenience array for flows that want all tools available
 import { queryDolt as _queryDolt } from './dolt.js';
@@ -20,6 +22,8 @@ import { getProductionAttributes as _getProductionAttributes } from './productio
 import { sampleSourceData as _sampleSourceData } from './sampleSourceData.js';
 import { getWarrantGroups as _getWarrantGroups } from './warrantGroups.js';
 import { writeConflict as _writeConflict } from './writeConflict.js';
+import { searchDocumentIndex as _searchDocumentIndex } from './searchDocumentIndex.js';
+import { navigateDocumentTree as _navigateDocumentTree } from './navigateDocumentTree.js';
 
 export const allTools = [
   _queryDolt,
@@ -32,4 +36,6 @@ export const allTools = [
   _sampleSourceData,
   _getWarrantGroups,
   _writeConflict,
+  _searchDocumentIndex,
+  _navigateDocumentTree,
 ];
