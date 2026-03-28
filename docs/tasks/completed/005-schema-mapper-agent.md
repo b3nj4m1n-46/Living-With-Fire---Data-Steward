@@ -1,9 +1,10 @@
 # Schema Mapper Agent — Source Column to Production Attribute Mapping
 
-> **Status:** TODO
+> **Status:** COMPLETED
 > **Priority:** P1 (important)
 > **Depends on:** 002-genkit-setup (Genkit tools + config)
 > **Blocks:** 009-first-external-analysis (needs mappings before creating warrants)
+> **Commit:** `7b8e812` — Implement schema mapper agent for source-to-production column mapping
 
 ## Problem
 
@@ -214,3 +215,22 @@ The main Genkit flow that proposes column→attribute mappings with crosswalks.
    // Should map region_X_water_use columns to Water Use attribute
    // Should handle the "Not Appropriate for this Region" and "Unknown" values
    ```
+
+## Implementation Notes
+
+### Commit: `7b8e812`
+
+**Files created:**
+- `genkit/src/tools/productionAttributes.ts` — queries `attributes` table with self-join for parent names
+- `genkit/src/tools/sampleSourceData.ts` — CSV reader with built-in RFC 4180 parser (no new dependencies)
+- `genkit/src/flows/mapSchemaFlow.ts` — orchestrates 3 tools in parallel, sends structured prompt to Sonnet, validates output
+
+**Files modified:**
+- `genkit/src/tools/index.ts` — added exports and `allTools` entries for both new tools
+
+### Deviations from Spec
+
+- **CSV parser is built-in** — implemented a ~60-line RFC 4180 state-machine parser rather than adding a dependency. Handles quoted fields, escaped double-quotes, BOM stripping, and mixed line endings.
+- **JSON extraction** — added 3-tier extraction (direct parse → fenced block → brace extraction) plus one retry on failure, which the spec didn't specify but is needed for LLM output reliability.
+- **csvPath auto-discovery** — when `csvPath` is not provided, the flow uses `readdir` to find the first `.csv` in the dataset folder rather than requiring it.
+- **Attribute ID validation** — post-LLM validation marks any hallucinated UUIDs as `UNCERTAIN` and nullifies the `targetAttributeId`, preventing invalid references downstream.
