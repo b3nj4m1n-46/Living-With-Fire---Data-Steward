@@ -1,9 +1,10 @@
 # Dashboard — Summary Stats and Analysis Overview
 
-> **Status:** TODO
+> **Status:** COMPLETED
 > **Priority:** P1 (important)
 > **Depends on:** 010-portal-scaffold (Next.js app + DB connection)
 > **Blocks:** None (other pages can be built in parallel)
+> **Commit:** 816e898 — Build dashboard with summary stats, batches table, and quick links
 
 ## Problem
 
