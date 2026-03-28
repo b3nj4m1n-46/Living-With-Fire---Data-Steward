@@ -103,34 +103,29 @@
 
 ## Phase 3: Admin Portal (Day 2, 4 hrs)
 
-### Scaffold
-- [ ] **T29** (15 min) `npx create-next-app` with TS, Tailwind, App Router
-- [ ] **T30** (15 min) Install: shadcn/ui (table, card, badge, dialog, button, tabs, checkbox), pg
-- [ ] **T31** (15 min) Create DoltgreSQL connection utility (`lib/dolt.ts`) — use `pg` client, port 5433
-- [ ] **T32** (10 min) Create layout with nav: Dashboard, Claims, Warrants, Conflicts, History
+### Scaffold — ✅ COMPLETED (`3e85a2a`)
+- [x] **T29** `npx create-next-app` with TS, Tailwind, App Router
+- [x] **T30** Install: shadcn/ui (table, card, badge, dialog, button, tabs, checkbox), pg
+- [x] **T31** Create DoltgreSQL connection utility (`lib/dolt.ts`) — use `pg` client, port 5433
+- [x] **T32** Create layout with nav: Dashboard, Claims, Warrants, Conflicts, History
 
-### Dashboard
-- [ ] **T33** (30 min) Dashboard page:
-  - Summary cards (total warrants, pending conflicts, claims generated, datasets processed)
-  - Analysis batches table
-  - Conflict severity breakdown chart
-  - Quick links to critical conflicts
+> **Completed:** 2026-03-28 | **Task spec:** `docs/tasks/completed/010-portal-scaffold.md`
+> **Note:** Next.js 14 + shadcn/ui + Tailwind in `admin/`. DoltgreSQL connection via `pg` on port 5433. Sidebar layout with 5 nav items.
 
-> **Depends on:** T22-T28 (data exists in Dolt)
+### Dashboard — ✅ COMPLETED (`816e898`)
+- [x] **T33** Dashboard page: summary cards, analysis batches table, conflict severity breakdown, quick links
 
-### Warrant & Claim Curation UI (The Core Feature)
-- [ ] **T34** (45 min) **Claim View Page** — for a given plant+attribute:
-  - Show current production value (if any)
-  - List all warrants as evidence cards with: source name, value, methodology, region, year, specialist notes
-  - Checkbox on each warrant for include/exclude
-  - Conflict badges on conflicting warrant pairs
-  - Specialist analysis shown inline on conflicting warrants
-- [ ] **T35** (30 min) **Synthesis Button** — calls `synthesizeClaimFlow` with selected warrants
-  - Shows AI-generated merged claim in editable text area
-  - Shows confidence level and reasoning
-  - "Approve" button to finalize
-- [ ] **T36** (15 min) API route: POST `/api/synthesize` — calls Genkit synthesizeClaimFlow
-- [ ] **T37** (15 min) API route: POST `/api/claims/approve` — writes claim + claim_warrants to Dolt, commits
+> **Completed:** 2026-03-28 | **Task spec:** `docs/tasks/completed/011-dashboard.md`
+> **Note:** Summary cards (warrants, conflicts, claims, datasets), batches table, severity breakdown badges, quick-action links to critical conflicts.
+
+### Warrant & Claim Curation UI (The Core Feature) — ✅ COMPLETED (`c056448`)
+- [x] **T34** **Claim View Page** — warrant cards with include/exclude checkboxes, conflict badges, specialist analysis inline
+- [x] **T35** **Synthesis Button** — stubbed for Phase 4 `synthesizeClaimFlow`
+- [x] **T36** API route: POST `/api/synthesize` — stub (returns placeholder until Phase 4)
+- [x] **T37** API route: POST `/api/claims/approve` — writes claim + claim_warrants to Dolt, commits
+
+> **Completed:** 2026-03-28 | **Task spec:** `docs/tasks/completed/012-warrant-claim-curation.md`
+> **Note:** Claims list with filtering, claim view with warrant cards + selection, approval workflow with Dolt commits. Synthesis stubbed pending Phase 4.
 
 ### Conflict Queue
 - [ ] **T38** (30 min) Conflicts list page: filterable/sortable table
