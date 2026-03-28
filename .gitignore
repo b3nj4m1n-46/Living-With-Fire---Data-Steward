@@ -30,6 +30,11 @@ __pycache__/
 .env
 venv/
 
+# ----- DoltgreSQL staging database (local dev only) -----
+lwf-staging/
+.doltcfg/
+auth.db
+
 # ----- Temp/cache -----
 *.tmp
 *.bak
