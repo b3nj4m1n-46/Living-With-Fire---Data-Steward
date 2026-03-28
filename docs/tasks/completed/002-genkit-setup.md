@@ -1,9 +1,10 @@
 # Genkit Setup — Agent Framework with Anthropic Plugin + Shared Tools
 
-> **Status:** IN PROGRESS
+> **Status:** COMPLETED
 > **Priority:** P0 (critical)
 > **Depends on:** 001-dolt-setup (DoltgreSQL running on port 5433)
 > **Blocks:** 003-bootstrap-warrants, all Phase 2 agent tasks
+> **Commit:** `5e9ea2b` — Add Genkit agent framework with Anthropic plugin + shared tools
 
 ## Problem
 
