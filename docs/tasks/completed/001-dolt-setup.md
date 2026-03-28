@@ -1,9 +1,10 @@
 # DoltgreSQL Setup — Staging Database with Production Mirror + Claim/Warrant Tables
 
-> **Status:** TODO
+> **Status:** COMPLETED
 > **Priority:** P0 (critical)
 > **Depends on:** None — start here
 > **Blocks:** 002-genkit-setup, 003-bootstrap-warrants
+> **Commit:** `3f87073` — Add DoltgreSQL staging database setup scripts (001-dolt-setup)
 
 ## Problem
 
@@ -218,3 +219,47 @@ SELECT dolt_commit('-m', 'production mirror: 1,361 plants, 94,903 values, 125 at
    GROUP BY p.genus, p.species;
    -- Should return a non-zero value_count
    ```
+
+---
+
+## Implementation Notes
+
+**Completed:** 2026-03-28 | **Commit:** `3f87073`
+
+### Schema corrections from spec
+
+The original spec had several schema mismatches vs the actual production CSVs. All were corrected:
+
+| Issue | Spec Said | Corrected To |
+|-------|-----------|-------------|
+| `sources` columns | `source_type, fire_region, citation` (7 cols) | `address, phone, region, target_location, topics_addressed, attribution, ref_code, file_link` (12 cols) |
+| `attributes` column | `display_type` | `selection_type` |
+| `values` table name | Unquoted | Quoted as `"values"` (PostgreSQL reserved word) |
+| Tables imported | 4 core tables only | All 13 production CSV tables |
+| Claim/Warrant ENUMs | MySQL `ENUM('a','b')` | `VARCHAR(N)` (DoltgreSQL PostgreSQL compatibility) |
+| Claim/Warrant indexes | MySQL inline `INDEX` | Separate `CREATE INDEX` statements |
+
+### DoltgreSQL setup details
+
+- **Version:** 0.55.6
+- **Port:** 5433
+- **Default credentials:** `postgres` / `password` (DoltgreSQL default)
+- **Database:** `lwf_staging` (created via `CREATE DATABASE`)
+- **Config:** `lwf-staging/config.yaml` (listener port override)
+- **Dolt commit hash:** `f3imeuite70s1bh1vcmni8nhg6em7oun`
+
+### Files delivered
+
+| File | Purpose |
+|------|---------|
+| `scripts/create_staging_tables.sql` | DDL for 13 production mirror tables + indexes |
+| `scripts/create_warrant_tables.sql` | DDL for 5 Claim/Warrant tables + indexes |
+| `scripts/import_production.py` | CSV import, verification, Dolt commit |
+| `.gitignore` | Added `lwf-staging/`, `.doltcfg/`, `auth.db` |
+
+### Verification results
+
+- All 13 CSV row counts verified (1,361 plants, 94,903 values, 125 attributes, 103 sources + 9 more)
+- All 18 tables present (13 production + 5 Claim/Warrant)
+- Dolt commit and log working
+- Sample query: Ceanothus velutinus = 80 values
