@@ -34,14 +34,14 @@
 > **Completed:** 2026-03-28 | **Task spec:** `docs/tasks/completed/002-genkit-setup.md`
 > **Note:** DoltgreSQL compatibility gotchas documented — no ILIKE, no LEFT JOIN on nullable FKs, must quote `"values"`. Smoke test script at `genkit/src/test-tools.ts`.
 
-### Bootstrap Existing Warrants
-- [ ] **T12** (30 min) Convert existing production `values` into warrants: each existing value → warrant with `warrant_type: 'existing'`, preserving source_id provenance
-- [ ] **T13** (10 min) Dolt commit: `"bootstrap: converted 94,903 production values to warrants"`
+### Bootstrap Existing Warrants — ✅ COMPLETED (`820b50b`)
+- [x] **T12** Converted 94,903 production values to warrants (`warrant_type: 'existing'`, `match_confidence: 1.00`). Used `COALESCE(value, source_value)` to preserve 26,889 boolean presence markers. Idempotent re-run support added.
+- [x] **T13** Dolt commit: `"bootstrap: 94903 production values converted to warrants"`
 
-> **Depends on:** T04 ✅, T06 ✅
-> **Critical:** This is what makes internal conflict detection possible.
+> **Completed:** 2026-03-28 | **Task spec:** `docs/tasks/completed/003-bootstrap-warrants.md`
+> **Note:** Source table columns differ from original spec (`notes`→methodology, `region`→region). DoltgreSQL LEFT JOIN bug workaround: sources loaded into in-memory Map. Internal conflict candidates found: Mahonia aquifolium (18 warrants/attribute), Penstemon spp. (15).
 
-**Milestone: Lunch Day 1** — ~~Dolt running~~ ✅, ~~Genkit configured~~ ✅, production values bootstrapped as warrants
+**Milestone: Lunch Day 1** — ~~Dolt running~~ ✅, ~~Genkit configured~~ ✅, ~~production values bootstrapped as warrants~~ ✅
 
 ---
 
@@ -65,14 +65,14 @@
 - [ ] **T20** (45 min) Implement `classifyConflictFlow`: compare warrants per plant+attribute, classify conflict type
 - [ ] **T21** (15 min) Implement severity scoring and specialist routing logic
 
-> **Depends on:** T12 (warrants exist)
+> **Depends on:** T12 ✅ — **Ready to start**
 
 ### Internal Conflict Scan
 - [ ] **T22** (30 min) Run Conflict Classifier in `internal` mode across all bootstrapped warrants
 - [ ] **T23** (10 min) Write conflicts to Dolt, commit: `"internal scan: X conflicts detected"`
 - [ ] **T24** (15 min) Generate summary stats for dashboard
 
-> **Depends on:** T20, T12
+> **Depends on:** T20, T12 ✅
 > **This is the first demo-worthy result.**
 
 ### Research Tools (Dataset Context + PageIndex)
