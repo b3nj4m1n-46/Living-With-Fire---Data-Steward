@@ -351,7 +351,7 @@ const getDatasetContext = defineTool({
   name: 'getDatasetContext',
   description: 'Load the DATA-DICTIONARY.md and README.md for a source dataset to understand its methodology, rating scales, and scope.',
   inputSchema: z.object({
-    datasetFolder: z.string(),  // e.g. "FirePerformancePlants"
+    datasetFolder: z.string(),  // e.g. "database-sources/fire/FirePerformancePlants"
     sections: z.array(z.enum([
       'rating_scales', 'methodology', 'geographic_scope',
       'column_definitions', 'merge_guidance', 'all'
@@ -470,60 +470,54 @@ After admin merges approved changes to DoltgreSQL `main`:
 | Admin Portal | Next.js 14 + shadcn/ui + Tailwind | Fast tables, forms, API routes |
 | DB Access | pg (Node) | Single client for both DoltgreSQL (staging) and Neon (production) |
 | Agent Framework | Google Genkit | Model-agnostic flows with typed schemas, tool registration, observability |
-| LLM | Claude / Gemini (per agent) | Genkit supports multiple model plugins; use best model per task |
+| LLM | Anthropic API (Haiku 4.5 + Sonnet 4.6) | Haiku for bulk/internal agents, Sonnet for admin-facing synthesis |
 | Taxonomy Matching | Genkit tool + POWO/WFO/USDA data | Synonym resolution and fuzzy matching |
-| Agent Research Context | DATA-DICTIONARY.md + README.md + PageIndex JSON trees | Structured metadata + 47 pre-indexed document trees in `knowledge-base/indexes/`. No vector store needed. |
+| Agent Research Context | DATA-DICTIONARY.md + README.md | Structured metadata in each dataset folder under `database-sources/`. PageIndex RAG over knowledge-base PDFs deferred to post-hackathon. |
 | Production Sync | Node.js + pg (Postgres client) | DoltgreSQL main → Neon upsert |
 
-### Hybrid Local/Cloud Model Strategy
+### Cloud-Only Model Strategy (Anthropic API)
 
-The system uses a **local-first** approach: run as many agents as possible on a local model (zero cost, no latency, no API limits) and only use cloud models where quality demands it.
-
-**Local model:** `qwen3:32b` via Ollama — strong reasoning at 32B params, handles classification, pattern matching, and domain reasoning well.
-
-**Cloud model:** Gemini 2.0 Flash or Claude Sonnet via Genkit — used only for the highest-quality synthesis tasks where the output is admin-facing.
+All agents run against the **Anthropic API** via Genkit's Anthropic plugin. Two model tiers based on whether the output is internal (stored in DB, used for routing) or admin-facing (read and edited by the data steward).
 
 ```typescript
-// Genkit config — register both local and cloud
-import { ollama } from 'genkitx-ollama';
-import { googleAI } from '@genkit-ai/googleai';
+// Genkit config — Anthropic only
+import { anthropic } from 'genkitx-anthropic';
 
 configureGenkit({
   plugins: [
-    ollama({ models: [{ name: 'qwen3:32b' }] }),
-    googleAI(),
+    anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }),
   ],
 });
 ```
 
-| Agent | Model | Local/Cloud | Reasoning |
-|-------|-------|-------------|-----------|
-| Matcher | `ollama/qwen3:32b` | Local | High volume, pattern matching — 32B handles synonym resolution well |
-| Schema Mapper | `ollama/qwen3:32b` | Local | Column semantic mapping — qwen3:32b is strong at reasoning about field definitions |
+| Agent | Model | Tier | Reasoning |
+|-------|-------|------|-----------|
+| Matcher | `anthropic/claude-haiku-4-5` | Internal | High volume, pattern matching — fast and cheap |
+| Schema Mapper | `anthropic/claude-sonnet-4-6` | **Admin-facing** | Needs reasoning about field semantics, output reviewed by admin |
 | Bulk Enhancer | No LLM needed | — | Pure data transformation, no model calls |
-| Conflict Classifier | `ollama/qwen3:32b` | Local | Classification against 8 conflict types — qwen3:32b excels at structured classification |
-| Rating Conflict | `ollama/qwen3:32b` | Local | Scale normalization and comparison — well-defined task with DATA-DICTIONARY context |
-| Scope Agent | `ollama/qwen3:32b` | Local | Geographic applicability — straightforward reasoning |
-| Temporal Agent | `ollama/qwen3:32b` | Local | Date comparison and recency assessment — simple logic |
-| Methodology Agent | `ollama/qwen3:32b` | Local | Study design comparison — benefits from DATA-DICTIONARY context |
-| Definition Agent | `ollama/qwen3:32b` | Local | Term definition comparison — pattern matching across dictionaries |
-| Taxonomy Agent | `ollama/qwen3:32b` | Local | Name resolution — mostly lookup + fuzzy match |
-| Research Agent | `ollama/qwen3:32b` | Local | Cross-references DATA-DICTIONARY metadata — no RAG, just structured reads |
-| **Synthesis Agent** | `googleai/gemini-2.0-flash` | **Cloud** | **This is the only agent whose output admins read directly.** Quality of the merged claim text matters — word choice, nuance, citation formatting. Cloud model justified here. |
+| Conflict Classifier | `anthropic/claude-haiku-4-5` | Internal | Bulk classification against 8 conflict types |
+| Rating Conflict | `anthropic/claude-haiku-4-5` | Internal | Scale normalization and comparison — internal annotation |
+| Scope Agent | `anthropic/claude-haiku-4-5` | Internal | Geographic applicability — internal annotation |
+| Temporal Agent | `anthropic/claude-haiku-4-5` | Internal | Date comparison and recency assessment |
+| Methodology Agent | `anthropic/claude-haiku-4-5` | Internal | Study design comparison with DATA-DICTIONARY context |
+| Definition Agent | `anthropic/claude-haiku-4-5` | Internal | Term definition comparison across dictionaries |
+| Taxonomy Agent | `anthropic/claude-haiku-4-5` | Internal | Name resolution — mostly lookup + fuzzy match |
+| Research Agent | `anthropic/claude-haiku-4-5` | Internal | Cross-references DATA-DICTIONARY metadata |
+| **Synthesis Agent** | `anthropic/claude-sonnet-4-6` | **Admin-facing** | **The demo climax.** Quality of merged claim text matters — word choice, nuance, citation formatting. |
 
-**Why local-first works:**
-- **Cost:** $0 for 11 of 12 agents. Only Synthesis hits the API.
-- **Speed:** No network round-trips for most operations. Batch processing of 1,361 plants stays local.
-- **Privacy:** Plant data and source metadata never leave the machine during conflict detection.
-- **Availability:** Works offline. No API rate limits during hackathon crunch time.
+**Selection rule:** If the output is internal (stored in DB, read by other agents, used for routing) → **Haiku 4.5**. If the output is admin-facing (synthesized claims, schema mapping suggestions the admin reviews) → **Sonnet 4.6**.
 
-**Fallback strategy:** If qwen3:32b struggles on a specific agent (test during setup), swap that one agent to cloud:
+**Why cloud-only:**
+- **Speed:** Anthropic API is fast. Local models (Ollama) were tested and found too slow for the hackathon workflow.
+- **Simplicity:** One API key, one billing account, one Genkit plugin. No local model setup or benchmarking.
+- **Cost:** Haiku 4.5 ($1/M input, $5/M output) handles 10 of 12 agents. Estimated total API cost for full build: ~$3-5.
+- **Quality:** Even the cheapest tier (Haiku) is stronger than local 32B models for classification and structured output.
+
+**Model swap is trivial** — just change the model string if quality needs differ from expectations:
 ```typescript
 // Easy swap — just change the model string
 const result = await generate({
-  model: 'googleai/gemini-2.0-flash',  // was 'ollama/qwen3:32b'
+  model: 'anthropic/claude-sonnet-4-6',  // was 'anthropic/claude-haiku-4-5'
   prompt: ...
 });
 ```
-
-**Benchmarking (pre-hackathon):** Run 5-10 test cases through each agent with both local and cloud models. Compare output quality. If local is within 90% of cloud quality, keep it local.

@@ -27,7 +27,7 @@
 - Create Claim/Warrant tables: warrants, conflicts, claims, claim_warrants, analysis_batches (see PROPOSALS-SCHEMA.md)
 - `dolt add .` + `dolt commit -m "initial production mirror"`
 - Start Dolt SQL server on port 3307
-- Initialize Genkit: install packages, configure model plugins (Claude + Gemini)
+- Initialize Genkit: install packages, configure Anthropic plugin (Haiku 4.5 for bulk agents, Sonnet 4.6 for synthesis)
 - Create shared Genkit tools: `lookupProductionPlant`, `getDataDictionary`, `getSourceMetadata`, Dolt query tool
 
 **Hour 3-4: Bootstrap + Matcher Agent**
@@ -153,15 +153,16 @@
 - [x] Dolt commit/history (button-based, no CLI)
 - [x] At least 1 specialist agent (Rating Conflict)
 
-### Stretch Goals
-- [ ] All 6 specialist agents implemented
+### Deferred to Post-Hackathon
+- [ ] All 6 specialist agents (hackathon: Rating + Scope only, others stubbed)
 - [ ] Knowledge Base RAG via PageIndex (upgrade researchConflictFlow from DATA-DICTIONARY context to full PDF search)
 - [ ] Table Fusion visual mapping UI
 - [ ] Bulk column addition workflow
-- [ ] All 40 datasets processed
+- [ ] All 40 datasets processed (hackathon: 2-3 datasets as proof)
 - [ ] Cross-source conflict matrix heatmap
-- [ ] Production sync to Neon
-- [ ] Batch warrant curation
+- [ ] Production sync to Neon (hackathon: demo Dolt diffs as "push preview")
+- [ ] Batch warrant curation (hackathon: one-at-a-time curation)
+- [ ] Local model inference via Ollama (tested, too slow — using Anthropic API instead)
 
 ### If Running Behind
 - Day 1 PM: Skip WUCOLS, just do FirePerformancePlants as proof
@@ -170,9 +171,9 @@
 - Synthesis Agent is non-negotiable — it's the demo climax
 
 ### If Running Ahead
-- Wire PageIndex `searchKnowledgeBase` into Research Agent if PageIndexAlt is ready (upgrade from DATA-DICTIONARY context to full PDF navigation — "AI navigated the original paper's methodology section")
-- Add Knowledge Base upload UI (admin drops PDF → auto-indexes with PageIndex → available to agents)
 - Process more datasets (show scale: "we analyzed 40 databases in the background")
+- Implement more specialist agents beyond Rating + Scope
+- Add batch warrant curation
+- Wire PageIndex RAG into Research Agent (post-hackathon priority)
 - Add the Table Fusion drag-and-drop UI
-- Implement more specialist agents
-- Add bulk column addition workflow
+- Production sync to Neon (post-hackathon priority)
