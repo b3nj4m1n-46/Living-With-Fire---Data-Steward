@@ -365,6 +365,14 @@ export function ConflictsTable({
                 Dismiss Selected
               </Button>
               <Button
+                variant="outline"
+                size="sm"
+                disabled
+                title="Specialist routing coming in Phase 4"
+              >
+                Route to Specialist
+              </Button>
+              <Button
                 variant="default"
                 size="sm"
                 onClick={() => batchAction("resolved")}

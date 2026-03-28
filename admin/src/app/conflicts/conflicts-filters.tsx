@@ -46,6 +46,7 @@ export function ConflictsFilters({
     currentFilters.status ||
     currentFilters.severity ||
     currentFilters.conflictType ||
+    currentFilters.attributeCategory ||
     currentFilters.sourceDataset;
 
   return (
@@ -96,6 +97,25 @@ export function ConflictsFilters({
           {options.conflictTypes.map((t) => (
             <SelectItem key={t} value={t}>
               {t.replace(/_/g, " ")}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Attribute Category filter */}
+      <Select
+        value={currentFilters.attributeCategory ?? ""}
+        onValueChange={(val) =>
+          updateFilter("attributeCategory", val || undefined)
+        }
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Attribute category" />
+        </SelectTrigger>
+        <SelectContent>
+          {options.attributeCategories.map((c) => (
+            <SelectItem key={c} value={c}>
+              {c}
             </SelectItem>
           ))}
         </SelectContent>

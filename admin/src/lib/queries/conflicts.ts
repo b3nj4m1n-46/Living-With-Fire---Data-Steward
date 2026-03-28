@@ -35,6 +35,7 @@ export interface ConflictListFilters {
   status?: string;
   severity?: string;
   conflictType?: string;
+  attributeCategory?: string;
   sourceDataset?: string;
   sortBy?: string;
   sortDir?: string;
@@ -45,6 +46,7 @@ export interface ConflictFilterOptions {
   statuses: string[];
   severities: string[];
   conflictTypes: string[];
+  attributeCategories: string[];
   sourceDatasets: string[];
 }
 
@@ -85,6 +87,14 @@ export async function fetchConflictsList(
   if (filters.conflictType) {
     conditions.push(`c.conflict_type = $${paramIndex}`);
     params.push(filters.conflictType);
+    paramIndex++;
+  }
+
+  if (filters.attributeCategory) {
+    conditions.push(
+      `LOWER(c.attribute_name) LIKE LOWER($${paramIndex})`
+    );
+    params.push(`%${filters.attributeCategory}%`);
     paramIndex++;
   }
 
@@ -177,7 +187,7 @@ export async function fetchConflictWarrants(
 // ── Filter Options ──────────────────────────────────────────────────────
 
 export async function fetchConflictFilterOptions(): Promise<ConflictFilterOptions> {
-  const [statuses, severities, conflictTypes, sourceDatasets] =
+  const [statuses, severities, conflictTypes, attributeCategories, sourceDatasets] =
     await Promise.all([
       query<{ status: string }>(
         "SELECT DISTINCT status FROM conflicts ORDER BY status"
@@ -187,6 +197,20 @@ export async function fetchConflictFilterOptions(): Promise<ConflictFilterOption
       ),
       query<{ conflict_type: string }>(
         "SELECT DISTINCT conflict_type FROM conflicts ORDER BY conflict_type"
+      ),
+      query<{ category: string }>(
+        `SELECT DISTINCT
+          CASE
+            WHEN LOWER(attribute_name) LIKE '%fire%' OR LOWER(attribute_name) LIKE '%flammab%' THEN 'fire'
+            WHEN LOWER(attribute_name) LIKE '%water%' OR LOWER(attribute_name) LIKE '%drought%' OR LOWER(attribute_name) LIKE '%irrigation%' THEN 'water'
+            WHEN LOWER(attribute_name) LIKE '%deer%' OR LOWER(attribute_name) LIKE '%browse%' THEN 'deer'
+            WHEN LOWER(attribute_name) LIKE '%native%' OR LOWER(attribute_name) LIKE '%origin%' THEN 'native'
+            WHEN LOWER(attribute_name) LIKE '%invasiv%' THEN 'invasive'
+            WHEN LOWER(attribute_name) LIKE '%pollinat%' OR LOWER(attribute_name) LIKE '%bird%' OR LOWER(attribute_name) LIKE '%wildlife%' OR LOWER(attribute_name) LIKE '%lepidopt%' THEN 'wildlife'
+            ELSE 'other'
+          END AS category
+        FROM conflicts
+        ORDER BY category`
       ),
       query<{ source: string }>(
         `SELECT DISTINCT source FROM (
@@ -201,6 +225,7 @@ export async function fetchConflictFilterOptions(): Promise<ConflictFilterOption
     statuses: statuses.map((r) => r.status),
     severities: severities.map((r) => r.severity),
     conflictTypes: conflictTypes.map((r) => r.conflict_type),
+    attributeCategories: attributeCategories.map((r) => r.category),
     sourceDatasets: sourceDatasets.map((r) => r.source),
   };
 }
