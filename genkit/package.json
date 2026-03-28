@@ -8,7 +8,9 @@
     "test": "tsx src/test-tools.ts",
     "bootstrap": "tsx src/scripts/bootstrap-warrants.ts",
     "test-matcher": "tsx src/scripts/test-matcher.ts",
-    "internal-scan": "tsx src/scripts/internal-conflict-scan.ts"
+    "internal-scan": "tsx src/scripts/internal-conflict-scan.ts",
+    "analyze:fire01": "tsx src/scripts/external-analysis.ts database-sources/fire/FirePerformancePlants",
+    "analyze:water01": "tsx src/scripts/external-analysis.ts database-sources/water/WUCOLS"
   },
   "dependencies": {
     "@genkit-ai/anthropic": "^0.2.0",

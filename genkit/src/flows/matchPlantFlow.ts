@@ -67,7 +67,7 @@ const plantInput = z.object({
   sourceDataset: z.string(),
 });
 
-const matchResult = z.object({
+export const matchResult = z.object({
   sourceRowId: z.coerce.string(),
   inputName: z.string(),
   matchType,

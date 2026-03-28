@@ -12,7 +12,7 @@ const REPO_ROOT = resolve(import.meta.dirname, '..', '..');
 
 const mappingType = z.enum(['DIRECT', 'CROSSWALK', 'SPLIT', 'NEW_ATTRIBUTE', 'SKIP', 'UNCERTAIN']);
 
-const columnMapping = z.object({
+export const columnMapping = z.object({
   sourceColumn: z.string(),
   sourceType: z.string(),
   sourceDefinition: z.string(),
@@ -31,7 +31,7 @@ const flowInput = z.object({
   csvPath: z.string().optional().describe('Override CSV path (default: first .csv in datasetFolder)'),
 });
 
-const flowOutput = z.object({
+export const mapSchemaOutput = z.object({
   sourceDataset: z.string(),
   sourceIdCode: z.string(),
   mappings: z.array(columnMapping),
@@ -133,7 +133,7 @@ export const mapSchemaFlow = ai.defineFlow(
   {
     name: 'mapSchemaFlow',
     inputSchema: flowInput,
-    outputSchema: flowOutput,
+    outputSchema: mapSchemaOutput,
   },
   async (input) => {
     // 1. Resolve CSV path

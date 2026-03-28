@@ -1,6 +1,6 @@
 # First External Analysis — Process FIRE-01 and WATER-01 Through Full Pipeline
 
-> **Status:** TODO
+> **Status:** IN PROGRESS
 > **Priority:** P0 (critical)
 > **Depends on:** 004-matcher-agent, 005-schema-mapper-agent, 006-conflict-classifier-agent
 > **Blocks:** Phase 3 admin portal (needs real external warrants + conflicts to display)
