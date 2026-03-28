@@ -1,6 +1,7 @@
 # Research Tools — Dataset Context + PageIndex Knowledge Base Search
 
 > **Status:** COMPLETED
+> **Commit:** 80aa921
 > **Priority:** P2 (normal)
 > **Depends on:** 002-genkit-setup (Genkit tools configured)
 > **Blocks:** Nothing critical — enhances specialist agents but they can work without it
