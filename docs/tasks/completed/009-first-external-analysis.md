@@ -1,6 +1,7 @@
 # First External Analysis — Process FIRE-01 and WATER-01 Through Full Pipeline
 
-> **Status:** IN PROGRESS
+> **Status:** COMPLETED
+> **Commit:** `e3189ab`
 > **Priority:** P0 (critical)
 > **Depends on:** 004-matcher-agent, 005-schema-mapper-agent, 006-conflict-classifier-agent
 > **Blocks:** Phase 3 admin portal (needs real external warrants + conflicts to display)
@@ -197,8 +198,14 @@ Run FIRE-01 first (smaller, simpler) to validate the pipeline, then WATER-01.
 ### Modified Files
 - `genkit/package.json` — add `analyze:fire01`, `analyze:water01` npm scripts
 
+### Additional Files (deviations from spec)
+- `genkit/src/utils/csv.ts` — extracted shared CSV parser from `sampleSourceData.ts` to avoid duplication
+- `genkit/src/tools/sampleSourceData.ts` — now imports `parseCSV` from shared utility
+- `genkit/src/flows/matchPlantFlow.ts` — exported `matchResult` zod schema for cross-flow type sharing
+- `genkit/src/flows/mapSchemaFlow.ts` — exported `columnMapping` and `mapSchemaOutput` schemas for cross-flow type sharing
+
 ### Unchanged
-- All existing tools and flows — used but not modified
+- All existing tools and flows — used but not modified (only type exports added)
 - Source datasets — read-only
 - DoltgreSQL schema — no table changes (only data inserts)
 
