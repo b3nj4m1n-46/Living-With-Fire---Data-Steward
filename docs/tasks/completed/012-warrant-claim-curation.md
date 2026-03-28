@@ -1,9 +1,10 @@
 # Warrant & Claim Curation UI — The Core Feature
 
-> **Status:** TODO
+> **Status:** COMPLETED
 > **Priority:** P0 (critical)
 > **Depends on:** 010-portal-scaffold (Next.js app + DB connection)
 > **Blocks:** None directly, but this is the primary P0 feature from the PRD
+> **Commit:** `c056448` — Build claim curation UI with warrant cards, API routes, and docs
 
 ## Problem
 
