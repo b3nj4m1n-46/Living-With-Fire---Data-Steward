@@ -1,7 +1,7 @@
 # Conflict Queue — Filterable Conflict Review Interface
 
 > **Status:** COMPLETE
-> **Commit:** `fb7338e`
+> **Commits:** `fb7338e`, `ff60321`, `ad26295`
 > **Priority:** P0 (critical)
 > **Depends on:** 010-portal-scaffold (Next.js app + DB connection)
 > **Blocks:** None directly, but critical for the curation workflow
