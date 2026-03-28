@@ -1,9 +1,10 @@
 # Portal Scaffold — Next.js Admin App with DoltgreSQL Connection
 
-> **Status:** TODO
+> **Status:** COMPLETED
 > **Priority:** P0 (critical)
 > **Depends on:** 001-dolt-setup (DoltgreSQL running on port 5433)
 > **Blocks:** 011-dashboard, 012-warrant-claim-curation, 013-conflict-queue
+> **Commit:** 3e85a2a
 
 ## Problem
 
