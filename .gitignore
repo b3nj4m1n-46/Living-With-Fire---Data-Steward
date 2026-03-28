@@ -39,6 +39,11 @@ auth.db
 genkit/node_modules/
 genkit/dist/
 
+# ----- Admin portal (Next.js) -----
+admin/node_modules/
+admin/.next/
+admin/.env.local
+
 # ----- Temp/cache -----
 *.tmp
 *.bak
