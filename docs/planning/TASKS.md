@@ -78,14 +78,15 @@
 > **Completed:** 2026-03-28 | **Task spec:** `docs/tasks/completed/007-internal-conflict-scan.md`
 > **Note:** Single `classifyConflictFlow` call handles all pagination and LLM batching internally. Script adds batch tracking, Dolt commit, verification queries, and JSON summary output.
 
-### Research Tools (Dataset Context + PageIndex)
-- [ ] **T22a** (20 min) Implement `getDatasetContext` Genkit tool: reads DATA-DICTIONARY.md + README.md for a dataset folder, returns structured metadata (rating scales, methodology, scope)
-- [ ] **T22b** (20 min) Implement `searchDocumentIndex` Genkit tool: loads `knowledge-base/indexes/manifest.json`, searches all 47 document trees by keyword against section titles and summaries
-- [ ] **T22c** (15 min) Implement `navigateDocumentTree` Genkit tool: given a document index file + node_id, returns that section's full summary and children
-- [ ] **T22d** (10 min) Register all 3 tools with Research Agent and specialist agents
-- [ ] **T22e** (10 min) Test: query "Ceanothus fire resistance methodology" → verify returns DATA-DICTIONARY context + matching PageIndex sections from Bethke and UC Forest Products Lab
+### Research Tools (Dataset Context + PageIndex) — ✅ COMPLETED (`80aa921`)
+- [x] **T22a** Implement `getDatasetContext` Genkit tool: reads DATA-DICTIONARY.md + README.md for a dataset folder, returns structured metadata (rating scales, methodology, scope)
+- [x] **T22b** Implement `searchDocumentIndex` Genkit tool: loads `knowledge-base/indexes/manifest.json`, searches all 47 document trees by keyword against section titles and summaries
+- [x] **T22c** Implement `navigateDocumentTree` Genkit tool: given a document index file + node_id, returns that section's full summary and children
+- [x] **T22d** Register all 3 tools with Research Agent and specialist agents
+- [x] **T22e** Test: query "Ceanothus fire resistance methodology" → verify returns DATA-DICTIONARY context + matching PageIndex sections from Bethke and UC Forest Products Lab
 
-> **Depends on:** T08-T11 (Genkit configured), DATA-DICTIONARY.md files exist, `knowledge-base/indexes/` populated (47 documents pre-indexed)
+> **Completed:** 2026-03-28 | **Task spec:** `docs/tasks/completed/008-research-tools.md`
+> **Note:** Three tools: `getDatasetContext`, `searchDocumentIndex`, `navigateDocumentTree`. PageIndex RAG over 45+ pre-indexed knowledge base documents without vector embeddings.
 
 ### First External Analysis
 - [ ] **T25** (30 min) Process FirePerformancePlants:
