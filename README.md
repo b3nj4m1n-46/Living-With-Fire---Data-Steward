@@ -402,13 +402,18 @@ LivinWitFire/
 │   ├── src/lib/                 # DB connection + query functions
 │   └── .env.local               # DoltgreSQL connection config
 ├── genkit/                      # Genkit agent pipeline
-│   ├── src/flows/               # 4 Genkit flows
+│   ├── src/flows/               # 12 Genkit flows (incl. indexDocumentFlow)
 │   ├── src/tools/               # 13 reusable tools
-│   ├── src/scripts/             # Runnable pipeline scripts
+│   ├── src/scripts/             # Bridge scripts (fusion-bridge, index-bridge)
 │   └── src/config.ts            # Anthropic plugin + model assignments
+├── scripts/                     # Utility scripts
+│   ├── pageindex/               # PDF document indexing pipeline
+│   ├── index_pdf.py             # CLI: index a single PDF
+│   └── index_all_pdfs.sh        # Batch: index all unindexed PDFs
 ├── database-sources/            # 40 source datasets by category
 ├── LivingWithFire-DB/           # Production database mirror + API reference
 ├── knowledge-base/              # 52 research documents (PDFs, HTML)
+│   └── indexes/                 # 47 hierarchical JSON indexes for agent search
 ├── data-sources/                # Provenance, literature, crossref docs
 └── docs/                        # Planning, architecture, task specs
     ├── planning/                # PRD, architecture, schema, conflict taxonomy
@@ -429,6 +434,7 @@ LivinWitFire/
 | `docs/planning/PROPOSALS-SCHEMA.md` | Claims, warrants, resolutions data model |
 | `docs/planning/CONFLICT-TAXONOMY.md` | 8 conflict types with detection/resolution patterns |
 | `LivingWithFire-DB/api-reference/ATTRIBUTE-REGISTRY.md` | 125 production attributes with UUIDs |
+| `docs/reference/ADMIN-API-REFERENCE.md` | All admin portal API endpoints with request/response shapes |
 | `data-sources/DATA-PROVENANCE.md` | Source ID registry with full citations |
 
 ---
@@ -505,6 +511,26 @@ Dependencies: `pip install pdfplumber openpyxl requests beautifulsoup4`
 | Production Database | Neon PostgreSQL (EAV schema) |
 | Public API | Vercel (`lwf-api.vercel.app`) |
 | Dataset Scripts | Python 3 (pdfplumber, openpyxl, beautifulsoup4) |
+| Document Indexing | Python 3 (PyMuPDF, PyPDF2, Anthropic SDK) |
+
+## Document Indexing (Knowledge Base)
+
+The knowledge base contains 52 research PDFs indexed into hierarchical JSON structures used by Genkit agent tools for research context. To index new or unindexed PDFs:
+
+```bash
+# Install dependencies
+pip install -r scripts/pageindex/requirements.txt
+
+# Index a single PDF
+python scripts/index_pdf.py --pdf knowledge-base/NewDocument.pdf
+
+# Batch-index all unindexed PDFs (2 concurrent jobs)
+bash scripts/index_all_pdfs.sh
+```
+
+Indexing uses Claude Haiku 4.5 (~$0.02-0.10 per PDF) to detect table of contents, extract hierarchical structure, verify page mappings, and generate section summaries. Results are written to `knowledge-base/indexes/` and the manifest is auto-updated.
+
+The admin portal also provides a UI at **Sources > Documents** for uploading and indexing PDFs.
 
 ## What's Deferred
 
