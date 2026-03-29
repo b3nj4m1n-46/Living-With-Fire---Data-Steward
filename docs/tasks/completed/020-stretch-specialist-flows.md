@@ -4,6 +4,7 @@
 > **Priority:** P3 (polish)
 > **Depends on:** 014-specialist-agents (rating + scope must land first to establish the pattern)
 > **Blocks:** None — all of these are additive to the demo
+> **Commit:** 0061ef4
 
 ## Problem
 
