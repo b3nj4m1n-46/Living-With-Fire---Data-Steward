@@ -1,6 +1,6 @@
 # 028 — Manual Plant Entry with Auto-Population (Split into Sub-Tasks)
 
-> **Status:** SPLIT — see sub-tasks below
+> **Status:** COMPLETED
 > **Priority:** P2 (normal)
 > **Depends on:** Core admin portal complete (tasks 001–025), Genkit agent pipeline operational
 > **Blocks:** Geographic expansion beyond Pacific NW
@@ -9,12 +9,12 @@
 
 This spec was split into four independently shippable tasks:
 
-| Task | Title | Status | Depends on |
-|------|-------|--------|------------|
-| [028a](../todo/028a-plant-browser.md) | Production Plant Browser | TODO | None |
-| [028b](../todo/028b-internal-audit.md) | Internal Audit of Production Data | TODO | None |
-| [028c](../todo/028c-plant-detail-staleness-guard.md) | Plant Detail Page + Staleness Guard | TODO | 028a |
-| [028d](../todo/028d-manual-plant-entry.md) | Manual Plant Entry with Auto-Population | TODO | 028a, 028c |
+| Task | Title | Status | Commit |
+|------|-------|--------|--------|
+| [028a](../completed/028a-plant-browser.md) | Production Plant Browser | COMPLETED | `af3e170` |
+| [028b](../completed/028b-internal-audit.md) | Internal Audit of Production Data | COMPLETED | `270841b` |
+| [028c](../todo/028c-plant-detail-staleness-guard.md) | Plant Detail Page + Staleness Guard | COMPLETED | `ad0297b` |
+| [028d](../todo/028d-manual-plant-entry.md) | Manual Plant Entry with Auto-Population | COMPLETED | `7f4293a` |
 
 The original spec is preserved below for reference.
 
