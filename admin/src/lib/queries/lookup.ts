@@ -251,6 +251,38 @@ export function searchSourceDatabases(scientificName: string): SourceHit[] {
       }
       matchedName = str(row[entry.nameColumn]) || matchedName;
 
+      // FLAMITS: also pull aggregate flammability metrics from the data table
+      if (entry.sourceId === "FIRE-03") {
+        const flamMetrics = querySqlite(
+          dbPath,
+          `SELECT var_name,
+                  ROUND(AVG(CAST(var_value AS REAL)), 2) AS avg_val,
+                  COUNT(*) AS n
+           FROM data
+           WHERE taxon_name = ? AND var_value != ''
+             AND var_name IN (
+               'flammability index', 'ignition frequency (%)',
+               'time to flaming (s)', 'flame height (cm)',
+               'flaming duration (s)', 'burnt biomass (%)'
+             )
+           GROUP BY var_name`,
+          [matchedName]
+        );
+        for (const m of flamMetrics) {
+          const varName = str(m.var_name);
+          const avgVal = str(m.avg_val);
+          const n = str(m.n);
+          if (!varName || !avgVal) continue;
+          fields.push({
+            sourceColumn: varName,
+            value: `${avgVal} (n=${n})`,
+            attributeId: "34b147da-613b-4df7-8eb9-76fd10e1d7ae", // Flammability Notes
+            attributeName: "Flammability Notes",
+            attributeCategory: "Flammability",
+          });
+        }
+      }
+
       hits.push({
         sourceId: entry.sourceId,
         displayName: entry.displayName,
