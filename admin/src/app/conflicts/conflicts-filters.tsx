@@ -1,8 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -10,22 +11,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type {
-  ConflictFilterOptions,
-  ConflictListFilters,
-} from "@/lib/queries/conflicts";
+import type { PlantQueueFilters } from "@/lib/queries/conflicts";
 
 interface ConflictsFiltersProps {
-  options: ConflictFilterOptions;
-  currentFilters: ConflictListFilters;
+  currentFilters: PlantQueueFilters;
 }
 
-export function ConflictsFilters({
-  options,
-  currentFilters,
-}: ConflictsFiltersProps) {
+export function ConflictsFilters({ currentFilters }: ConflictsFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [searchValue, setSearchValue] = useState(
+    currentFilters.plantSearch ?? ""
+  );
+
+  // Debounced plant search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (searchValue) {
+        params.set("plantSearch", searchValue);
+      } else {
+        params.delete("plantSearch");
+      }
+      params.delete("page");
+      router.push(`/conflicts?${params.toString()}`);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchValue]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function updateFilter(key: string, value: string | undefined) {
     const params = new URLSearchParams(searchParams.toString());
@@ -34,64 +46,29 @@ export function ConflictsFilters({
     } else {
       params.delete(key);
     }
-    // Reset to page 1 when filters change
     params.delete("page");
     router.push(`/conflicts?${params.toString()}`);
   }
 
   function clearFilters() {
+    setSearchValue("");
     router.push("/conflicts");
   }
 
-  function clearSourcePair() {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("sourceA");
-    params.delete("sourceB");
-    params.delete("page");
-    router.push(`/conflicts?${params.toString()}`);
-  }
-
-  const hasSourcePair = currentFilters.sourceA && currentFilters.sourceB;
-
   const hasAnyFilter =
-    currentFilters.status ||
     currentFilters.severity ||
-    currentFilters.conflictType ||
-    currentFilters.conflictMode ||
-    currentFilters.attributeCategory ||
-    currentFilters.sourceDataset ||
-    hasSourcePair;
+    currentFilters.queueStatus ||
+    currentFilters.plantSearch;
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      {hasSourcePair && (
-        <Badge variant="secondary" className="gap-1 py-1.5 text-sm">
-          {currentFilters.sourceA} vs {currentFilters.sourceB}
-          <button
-            onClick={clearSourcePair}
-            className="ml-1 text-muted-foreground hover:text-foreground"
-          >
-            &times;
-          </button>
-        </Badge>
-      )}
-
-      {/* Status filter */}
-      <Select
-        value={currentFilters.status ?? ""}
-        onValueChange={(val) => updateFilter("status", val || undefined)}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Status" />
-        </SelectTrigger>
-        <SelectContent>
-          {options.statuses.map((s) => (
-            <SelectItem key={s} value={s}>
-              {s}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {/* Plant name search */}
+      <Input
+        placeholder="Search plants..."
+        value={searchValue}
+        onChange={(e) => setSearchValue(e.target.value)}
+        className="w-56"
+      />
 
       {/* Severity filter */}
       <Select
@@ -102,83 +79,24 @@ export function ConflictsFilters({
           <SelectValue placeholder="Severity" />
         </SelectTrigger>
         <SelectContent>
-          {options.severities.map((s) => (
-            <SelectItem key={s} value={s}>
-              {s}
-            </SelectItem>
-          ))}
+          <SelectItem value="critical">Critical</SelectItem>
+          <SelectItem value="moderate">Moderate</SelectItem>
+          <SelectItem value="minor">Minor</SelectItem>
         </SelectContent>
       </Select>
 
-      {/* Conflict Type filter */}
+      {/* Queue status filter */}
       <Select
-        value={currentFilters.conflictType ?? ""}
-        onValueChange={(val) => updateFilter("conflictType", val || undefined)}
+        value={currentFilters.queueStatus ?? ""}
+        onValueChange={(val) => updateFilter("queueStatus", val || undefined)}
       >
         <SelectTrigger>
-          <SelectValue placeholder="Conflict type" />
+          <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
-          {options.conflictTypes.map((t) => (
-            <SelectItem key={t} value={t}>
-              {t.replace(/_/g, " ")}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {/* Conflict Mode filter */}
-      <Select
-        value={currentFilters.conflictMode ?? ""}
-        onValueChange={(val) => updateFilter("conflictMode", val || undefined)}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Mode" />
-        </SelectTrigger>
-        <SelectContent>
-          {options.conflictModes.map((m) => (
-            <SelectItem key={m} value={m}>
-              {m.replace(/_/g, " ")}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {/* Attribute Category filter */}
-      <Select
-        value={currentFilters.attributeCategory ?? ""}
-        onValueChange={(val) =>
-          updateFilter("attributeCategory", val || undefined)
-        }
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Attribute category" />
-        </SelectTrigger>
-        <SelectContent>
-          {options.attributeCategories.map((c) => (
-            <SelectItem key={c} value={c}>
-              {c}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {/* Source Dataset filter */}
-      <Select
-        value={currentFilters.sourceDataset ?? ""}
-        onValueChange={(val) =>
-          updateFilter("sourceDataset", val || undefined)
-        }
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Source dataset" />
-        </SelectTrigger>
-        <SelectContent>
-          {options.sourceDatasets.map((d) => (
-            <SelectItem key={d} value={d}>
-              {d}
-            </SelectItem>
-          ))}
+          <SelectItem value="pending">Pending</SelectItem>
+          <SelectItem value="in_progress">In progress</SelectItem>
+          <SelectItem value="complete">Complete</SelectItem>
         </SelectContent>
       </Select>
 

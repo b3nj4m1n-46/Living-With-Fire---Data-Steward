@@ -2,22 +2,24 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { ConflictsFilters } from "./conflicts-filters";
-import { ConflictsTable } from "./conflicts-table";
+import { PlantQueueTable } from "./plant-queue-table";
 import { MatrixClient } from "./matrix-client";
-import type { ConflictFilterOptions, ConflictListFilters, ConflictListRow } from "@/lib/queries/conflicts";
+import type { PlantQueueRow, PlantQueueFilters } from "@/lib/queries/conflicts";
 import type { MatrixData, MatrixFilters } from "@/lib/queries/conflict-matrix";
 
 interface ConflictsClientProps {
-  // List view props
-  rows: ConflictListRow[];
+  rows: PlantQueueRow[];
   total: number;
   page: number;
   pageSize: number;
-  filters: ConflictListFilters;
-  filterOptions: ConflictFilterOptions;
-  // Matrix view props
+  filters: PlantQueueFilters;
   matrixData: MatrixData;
   matrixFilters: MatrixFilters;
+  matrixFilterOptions: {
+    statuses: string[];
+    severities: string[];
+    conflictTypes: string[];
+  };
 }
 
 export function ConflictsClient({
@@ -26,9 +28,9 @@ export function ConflictsClient({
   page,
   pageSize,
   filters,
-  filterOptions,
   matrixData,
   matrixFilters,
+  matrixFilterOptions,
 }: ConflictsClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -57,7 +59,7 @@ export function ConflictsClient({
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            List
+            Plant Queue
           </button>
           <button
             onClick={() => switchView("matrix")}
@@ -76,22 +78,16 @@ export function ConflictsClient({
         <MatrixClient
           data={matrixData}
           currentFilters={matrixFilters}
-          filterOptions={{
-            statuses: filterOptions.statuses,
-            severities: filterOptions.severities,
-            conflictTypes: filterOptions.conflictTypes,
-          }}
+          filterOptions={matrixFilterOptions}
         />
       ) : (
         <>
-          <ConflictsFilters options={filterOptions} currentFilters={filters} />
-          <ConflictsTable
+          <ConflictsFilters currentFilters={filters} />
+          <PlantQueueTable
             rows={rows}
             total={total}
             page={page}
             pageSize={pageSize}
-            sortBy={filters.sortBy ?? "severity"}
-            sortDir={filters.sortDir ?? "desc"}
           />
         </>
       )}

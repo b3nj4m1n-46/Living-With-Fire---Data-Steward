@@ -1,6 +1,33 @@
 import { query, queryOne } from "@/lib/dolt";
 import type { WarrantDetail } from "@/lib/queries/claims";
 
+// ── Plant Queue Interfaces ──────────────────────────────────────────────
+
+export interface PlantQueueRow {
+  plant_id: string;
+  plant_name: string;
+  total_conflicts: number;
+  max_severity: string;
+  attributes_affected: number;
+  unresolved_count: number;
+  queue_status: "pending" | "in_progress" | "complete";
+}
+
+export interface PlantQueueFilters {
+  severity?: string;
+  queueStatus?: string;
+  plantSearch?: string;
+  page?: string;
+}
+
+export interface PlantConflictAttribute {
+  attribute_name: string;
+  attribute_id: string | null;
+  conflict_count: number;
+  unresolved_count: number;
+  max_severity: string;
+}
+
 // ── Interfaces ──────────────────────────────────────────────────────────
 
 export interface ConflictListRow {
@@ -320,4 +347,149 @@ export async function batchUpdateConflictStatus(
   );
 
   return rows.length;
+}
+
+// ── Plant Conflict Queue ───────────────────────────────────────────────
+
+const QUEUE_PAGE_SIZE = 50;
+
+export async function fetchPlantConflictQueue(
+  filters: PlantQueueFilters
+): Promise<{ rows: PlantQueueRow[]; total: number }> {
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  let paramIndex = 1;
+
+  if (filters.severity) {
+    conditions.push(`c.severity = $${paramIndex}`);
+    params.push(filters.severity);
+    paramIndex++;
+  }
+
+  if (filters.plantSearch) {
+    conditions.push(`LOWER(c.plant_name) LIKE LOWER($${paramIndex})`);
+    params.push(`%${filters.plantSearch}%`);
+    paramIndex++;
+  }
+
+  const whereClause =
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  // Build HAVING clause for computed queue_status filter
+  let havingClause = "";
+  if (filters.queueStatus) {
+    havingClause = `HAVING CASE
+      WHEN SUM(CASE WHEN c.status IN ('pending', 'annotated') THEN 1 ELSE 0 END) = 0 THEN 'complete'
+      WHEN SUM(CASE WHEN c.status IN ('resolved', 'dismissed') THEN 1 ELSE 0 END) > 0 THEN 'in_progress'
+      ELSE 'pending'
+    END = $${paramIndex}`;
+    params.push(filters.queueStatus);
+    paramIndex++;
+  }
+
+  const page = Math.max(1, parseInt(filters.page ?? "1", 10) || 1);
+  const offset = (page - 1) * QUEUE_PAGE_SIZE;
+
+  const baseSql = `
+    FROM conflicts c
+    ${whereClause}
+    GROUP BY c.plant_id, c.plant_name
+    ${havingClause}
+  `;
+
+  const [rows, countResult] = await Promise.all([
+    query<{
+      plant_id: string;
+      plant_name: string;
+      total_conflicts: string;
+      max_severity: string;
+      attributes_affected: string;
+      unresolved_count: string;
+      queue_status: string;
+    }>(
+      `SELECT
+        c.plant_id,
+        c.plant_name,
+        COUNT(*)::int AS total_conflicts,
+        CASE MAX(CASE c.severity WHEN 'critical' THEN 2 WHEN 'moderate' THEN 1 ELSE 0 END)
+          WHEN 2 THEN 'critical'
+          WHEN 1 THEN 'moderate'
+          ELSE 'minor'
+        END AS max_severity,
+        COUNT(DISTINCT c.attribute_name)::int AS attributes_affected,
+        SUM(CASE WHEN c.status IN ('pending', 'annotated') THEN 1 ELSE 0 END)::int AS unresolved_count,
+        CASE
+          WHEN SUM(CASE WHEN c.status IN ('pending', 'annotated') THEN 1 ELSE 0 END) = 0 THEN 'complete'
+          WHEN SUM(CASE WHEN c.status IN ('resolved', 'dismissed') THEN 1 ELSE 0 END) > 0 THEN 'in_progress'
+          ELSE 'pending'
+        END AS queue_status
+      ${baseSql}
+      ORDER BY
+        MAX(CASE c.severity WHEN 'critical' THEN 2 WHEN 'moderate' THEN 1 ELSE 0 END) DESC,
+        SUM(CASE WHEN c.status IN ('pending', 'annotated') THEN 1 ELSE 0 END) DESC
+      LIMIT ${QUEUE_PAGE_SIZE} OFFSET ${offset}`,
+      params
+    ),
+    query<{ count: string }>(
+      `SELECT COUNT(*) AS count FROM (
+        SELECT c.plant_id
+        ${baseSql}
+      ) sub`,
+      params
+    ),
+  ]);
+
+  return {
+    rows: rows.map((r) => ({
+      plant_id: r.plant_id,
+      plant_name: r.plant_name?.trim() ?? "",
+      total_conflicts: Number(r.total_conflicts),
+      max_severity: r.max_severity,
+      attributes_affected: Number(r.attributes_affected),
+      unresolved_count: Number(r.unresolved_count),
+      queue_status: r.queue_status as PlantQueueRow["queue_status"],
+    })),
+    total: Number(countResult[0]?.count ?? 0),
+  };
+}
+
+// ── Plant Conflict Attributes ──────────────────────────────────────────
+
+export async function fetchPlantConflictAttributes(
+  plantId: string
+): Promise<PlantConflictAttribute[]> {
+  const rows = await query<{
+    attribute_name: string;
+    attribute_id: string | null;
+    conflict_count: string;
+    unresolved_count: string;
+    max_severity: string;
+  }>(
+    `SELECT
+      c.attribute_name,
+      (SELECT w.attribute_id FROM warrants w
+       WHERE w.plant_id = c.plant_id AND w.attribute_name = c.attribute_name LIMIT 1) AS attribute_id,
+      COUNT(*)::int AS conflict_count,
+      SUM(CASE WHEN c.status IN ('pending', 'annotated') THEN 1 ELSE 0 END)::int AS unresolved_count,
+      CASE MAX(CASE c.severity WHEN 'critical' THEN 2 WHEN 'moderate' THEN 1 ELSE 0 END)
+        WHEN 2 THEN 'critical'
+        WHEN 1 THEN 'moderate'
+        ELSE 'minor'
+      END AS max_severity
+    FROM conflicts c
+    WHERE c.plant_id = $1
+    GROUP BY c.plant_id, c.attribute_name
+    ORDER BY
+      MAX(CASE c.severity WHEN 'critical' THEN 2 WHEN 'moderate' THEN 1 ELSE 0 END) DESC,
+      COUNT(*) DESC`,
+    [plantId]
+  );
+
+  return rows.map((r) => ({
+    attribute_name: r.attribute_name,
+    attribute_id: r.attribute_id,
+    conflict_count: Number(r.conflict_count),
+    unresolved_count: Number(r.unresolved_count),
+    max_severity: r.max_severity,
+  }));
 }

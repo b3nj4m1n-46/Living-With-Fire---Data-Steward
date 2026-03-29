@@ -1,7 +1,7 @@
 import {
-  fetchConflictsList,
+  fetchPlantConflictQueue,
   fetchConflictFilterOptions,
-  type ConflictListFilters,
+  type PlantQueueFilters,
 } from "@/lib/queries/conflicts";
 import {
   fetchMatrixData,
@@ -20,17 +20,10 @@ export default async function ConflictsPage({
 }) {
   const params = await searchParams;
 
-  const filters: ConflictListFilters = {
-    status: params.status,
+  const queueFilters: PlantQueueFilters = {
     severity: params.severity,
-    conflictType: params.conflictType,
-    conflictMode: params.conflictMode,
-    attributeCategory: params.attributeCategory,
-    sourceDataset: params.sourceDataset,
-    sourceA: params.sourceA,
-    sourceB: params.sourceB,
-    sortBy: params.sortBy,
-    sortDir: params.sortDir,
+    queueStatus: params.queueStatus,
+    plantSearch: params.plantSearch,
     page: params.page,
   };
 
@@ -41,7 +34,7 @@ export default async function ConflictsPage({
   };
 
   const [{ rows, total }, filterOptions, matrixData] = await Promise.all([
-    fetchConflictsList(filters),
+    fetchPlantConflictQueue(queueFilters),
     fetchConflictFilterOptions(),
     fetchMatrixData(matrixFilters),
   ]);
@@ -54,10 +47,14 @@ export default async function ConflictsPage({
       total={total}
       page={page}
       pageSize={PAGE_SIZE}
-      filters={filters}
-      filterOptions={filterOptions}
+      filters={queueFilters}
       matrixData={matrixData}
       matrixFilters={matrixFilters}
+      matrixFilterOptions={{
+        statuses: filterOptions.statuses,
+        severities: filterOptions.severities,
+        conflictTypes: filterOptions.conflictTypes,
+      }}
     />
   );
 }

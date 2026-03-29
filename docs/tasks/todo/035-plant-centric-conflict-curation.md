@@ -1,6 +1,6 @@
 # 035 — Plant-Centric Conflict Curation
 
-> **Status:** TODO
+> **Status:** DONE
 > **Priority:** P1 (important)
 > **Depends on:** None (all underlying data model, APIs, and components exist)
 > **Blocks:** Warrant browser (no longer needed as standalone page)

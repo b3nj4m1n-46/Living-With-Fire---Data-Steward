@@ -123,7 +123,7 @@ export function PlantDetailClient({ data }: PlantDetailClientProps) {
                       <TableRow key={`${attr.attribute_id}-${idx}`}>
                         <TableCell>
                           <Link
-                            href={`/claims/${data.plant.id}/${attr.attribute_id}`}
+                            href={conflicts > 0 ? `/conflicts/${data.plant.id}` : `/claims/${data.plant.id}/${attr.attribute_id}`}
                             className="text-primary underline-offset-4 hover:underline"
                           >
                             {/^\d+[A-Z]?$/.test(attr.attribute_name) && attr.attribute_notes

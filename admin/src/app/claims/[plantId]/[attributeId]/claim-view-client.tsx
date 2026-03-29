@@ -152,10 +152,10 @@ export function ClaimViewClient({
       {/* Back link + Header */}
       <div>
         <Link
-          href="/claims"
+          href={`/conflicts/${plantId}`}
           className="text-sm text-muted-foreground hover:underline"
         >
-          &larr; Back to Claims
+          &larr; Back to Plant Conflicts
         </Link>
         <h2 className="mt-2 text-2xl font-bold italic">{plantName}</h2>
         {commonName && (

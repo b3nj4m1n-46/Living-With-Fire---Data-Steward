@@ -22,7 +22,7 @@ const navGroups: NavGroup[] = [
   {
     label: "Data Pipeline",
     items: [
-      { href: "/sources", label: "Sources" },
+      { href: "/sources", label: "Data Set Sources" },
       { href: "/sources/documents", label: "Documents" },
       { href: "/sources/reliability", label: "Reliability" },
       { href: "/fusion", label: "Fusion" },
@@ -31,9 +31,7 @@ const navGroups: NavGroup[] = [
   {
     label: "Curation",
     items: [
-      { href: "/claims", label: "Claims" },
       { href: "/conflicts", label: "Conflicts" },
-      { href: "/warrants", label: "Warrants", badge: "soon" },
     ],
   },
   {
