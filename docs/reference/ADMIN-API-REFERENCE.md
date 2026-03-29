@@ -419,7 +419,7 @@ Batch update the status of multiple conflicts at once. Used by the batch toolbar
 
 ## `POST /api/conflicts/{id}/specialist`
 
-Run AI specialist analysis on a conflict. Determines whether the conflict is REAL, APPARENT, or NUANCED by analyzing source methodologies, rating scales, and geographic applicability. Only `ratingConflictFlow` and `scopeConflictFlow` specialists are implemented.
+Run AI specialist analysis on a conflict. Determines whether the conflict is REAL, APPARENT, or NUANCED by analyzing source methodologies, rating scales, and geographic applicability. Supported specialists: `ratingConflictFlow`, `scopeConflictFlow`, `taxonomyConflictFlow`, `researchConflictFlow`, `temporalConflictFlow`, `methodologyConflictFlow` (stub), `definitionConflictFlow` (stub).
 
 **Source:** `admin/src/app/api/conflicts/[id]/specialist/route.ts`
 **Requires:** `ANTHROPIC_API_KEY` environment variable
@@ -464,7 +464,7 @@ None required — the route reads the conflict and determines which specialist t
 | Status | Body | Cause |
 |--------|------|-------|
 | `400` | `{ "error": "No specialist agent assigned..." }` | Conflict has no `specialist_agent` value |
-| `400` | `{ "error": "Specialist ... is not yet implemented" }` | Specialist type other than rating/scope |
+| `400` | `{ "error": "Specialist ... is not yet implemented" }` | Unrecognized specialist type |
 | `404` | `{ "error": "Conflict not found" }` | No conflict with that ID |
 | `500` | `{ "error": "Failed to run specialist analysis" }` | Anthropic API error or parse failure |
 

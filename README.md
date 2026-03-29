@@ -242,6 +242,11 @@ AI-powered data fusion agents built with [Firebase Genkit](https://firebase.goog
 | `classifyConflictFlow` | Detect and classify conflicts into 8 types with severity | Haiku 4.5 |
 | `ratingConflictFlow` | Specialist: resolve rating disagreements via methodology/scale analysis | Sonnet 4.6 |
 | `scopeConflictFlow` | Specialist: resolve scope conflicts via regional applicability analysis | Sonnet 4.6 |
+| `taxonomyConflictFlow` | Specialist: resolve taxonomy/naming conflicts via POWO/WFO/USDA lookups | Sonnet 4.6 |
+| `researchConflictFlow` | Specialist: resolve evidence-quality conflicts via source methodology analysis | Sonnet 4.6 |
+| `temporalConflictFlow` | Specialist: resolve temporal conflicts via publication date/currency analysis | Sonnet 4.6 |
+| `methodologyConflictFlow` | Specialist: resolve methodology conflicts (stub — returns needs-research) | None |
+| `definitionConflictFlow` | Specialist: resolve definition/category conflicts (stub — returns needs-research) | None |
 | `synthesizeClaimFlow` | Merge selected warrants into production-ready claim with confidence | Sonnet 4.6 |
 
 **Tools** (`genkit/src/tools/`) — 13 reusable Genkit tools: `queryDolt`, `lookupProductionPlant`, `getDatasetContext`, `searchDocumentIndex`, `navigateDocumentTree`, `resolveSynonym`, `fuzzyMatch`, `warrantGroups`, `writeConflict`, `sourceMetadata`, `productionAttributes`, `sampleSourceData`
