@@ -9,6 +9,9 @@
 
 The dashboard summary cards show 5 metrics but none reflect fusion/schema mapping activity. A data steward returning to the portal has no at-a-glance indicator of how many source datasets have been mapped or are awaiting review.
 
+## Commit
+- `c905f34` — Add "Datasets Mapped" dashboard card (task 026)
+
 ## Implementation
 
 Added a 6th "Datasets Mapped" summary card to the dashboard that queries `analysis_batches WHERE batch_type = 'schema_mapping'` for total count and status breakdown.
