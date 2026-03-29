@@ -37,9 +37,10 @@ A plant data collection and admin tooling project for building a fire-wise, wild
           │  admin/                  │
           │                          │
           │  Dashboard               │  ← Stats, batches, severity breakdown
+          │  Source Pipeline         │  ← Upload CSV, AI dictionary, run pipeline
           │  Claim Curation          │  ← Warrant cards, synthesis, approval
           │  Conflict Queue          │  ← Filterable, research, batch ops
-          │  History                 │  ← Dolt commit log (placeholder)
+          │  History                 │  ← Dolt commit log, diff viewer
           └────────────┬────────────┘
                        │
           ┌────────────▼────────────┐
@@ -256,7 +257,8 @@ AI-powered data fusion agents built with [Firebase Genkit](https://firebase.goog
 |--------|---------|
 | `bootstrap-warrants.ts` | Convert 94,903 production values to warrants |
 | `internal-conflict-scan.ts` | Detect conflicts within existing production data |
-| `external-analysis.ts` | Full pipeline for processing a source dataset |
+| `external-analysis.ts` | Full pipeline for processing a source dataset (CLI) |
+| `fusion-bridge.ts` | JSON stdin/stdout bridge for admin portal API routes (map, preview, execute, full-analysis) |
 | `test-matcher.ts` | Validate plant matching against FIRE-01 |
 
 ### 3. Admin Portal (`admin/`)
@@ -267,16 +269,32 @@ Next.js 16 admin portal with shadcn/ui for data steward curation workflow.
 | Route | Purpose |
 |-------|---------|
 | `/` | Dashboard — summary cards, analysis batches, conflict severity breakdown |
+| `/sources` | Source registry — all datasets with status, upload entry point |
+| `/sources/upload` | Upload workflow — 4-step: CSV upload, metadata, AI dictionary, run pipeline |
+| `/sources/[batchId]` | Pipeline progress — live step tracking with auto-refresh |
 | `/claims` | Claims list — filterable plant+attribute combinations with warrant counts |
 | `/claims/[plantId]/[attributeId]` | Claim view — warrant cards, selection, synthesis, approval |
 | `/conflicts` | Conflict queue — filterable table with inline expansion, research, batch ops |
+| `/matrix` | Conflict matrix — cross-source heatmap visualization |
 | `/warrants` | Warrant browser |
+| `/fusion` | Fusion — schema mapping review and batch execution |
+| `/fusion/[batchId]` | Fusion batch detail — mapping config review and crosswalk editing |
+| `/sync` | Sync — preview and push approved changes to production |
 | `/history` | Dolt commit log with diff viewer, save, and undo |
 | `/history/[commitHash]` | Commit diff viewer — row-level changes per table |
 
 **API Routes:**
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
+| `/api/sources/upload` | POST | Upload CSV file, return preview (headers, sample rows) |
+| `/api/sources/create` | GET/POST | GET: suggest next source ID; POST: create dataset folder + README |
+| `/api/sources/dictionary` | POST/PUT | POST: AI-generate DATA-DICTIONARY.md; PUT: save edits |
+| `/api/sources/run` | POST | Trigger full analysis pipeline (fire-and-forget) |
+| `/api/sources/[batchId]/status` | GET | Poll pipeline progress (step status, stats) |
+| `/api/fusion/map` | POST | Run schema mapping for a dataset |
+| `/api/fusion/preview` | GET | Preview fusion results |
+| `/api/fusion/execute` | POST | Execute fusion batch with reviewed mapping config |
+| `/api/fusion/[batchId]` | GET | Fetch fusion batch detail |
 | `/api/warrants/[id]` | PATCH | Update warrant status (included/excluded/unreviewed) |
 | `/api/synthesize` | POST | AI claim synthesis from warrants (Anthropic Sonnet 4.6) |
 | `/api/claims/approve` | POST | Approve claim → Dolt commit |
@@ -284,10 +302,13 @@ Next.js 16 admin portal with shadcn/ui for data steward curation workflow.
 | `/api/conflicts/[id]/research` | POST | Retrieve research context for a conflict |
 | `/api/conflicts/[id]/specialist` | POST | Run AI specialist analysis (rating/scope) |
 | `/api/conflicts/batch` | POST | Batch dismiss/route conflicts |
+| `/api/matrix` | GET | Cross-source conflict matrix data |
 | `/api/dolt/log` | GET | Fetch Dolt commit history |
 | `/api/dolt/status` | GET | Check for uncommitted changes |
 | `/api/dolt/commit` | POST | Create manual Dolt commit |
 | `/api/dolt/revert` | POST | Revert a recent commit |
+| `/api/sync/preview` | GET | Preview changes to push to production |
+| `/api/sync/push` | POST | Push approved changes to Neon production |
 
 ### 4. Production Database (`LivingWithFire-DB/`)
 

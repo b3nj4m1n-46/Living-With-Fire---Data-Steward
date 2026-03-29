@@ -85,7 +85,7 @@
   - Summary cards: total warrants, pending conflicts (by severity), claims generated, datasets processed
   - Analysis batches table with status
   - Most-conflicted plants list
-- Navigation: Dashboard, Claims, Conflicts, History
+- Navigation: Dashboard, Sources, Claims, Conflicts, Matrix, Warrants, Fusion, Sync, History
 
 **Hour 3-4: Warrant Curation UI (THE CORE FEATURE)**
 - **Claim View** (`/claims/[plantId]/[attributeId]`):
@@ -153,16 +153,20 @@
 - [x] Dolt commit/history (button-based, no CLI)
 - [x] At least 1 specialist agent (Rating Conflict)
 
-### Deferred to Post-Hackathon
-- [ ] All 6 specialist agents (hackathon: Rating + Scope only, others stubbed)
-- [ ] Knowledge Base RAG via PageIndex (upgrade researchConflictFlow from DATA-DICTIONARY context to full PDF search)
-- [ ] Table Fusion visual mapping UI
+### Built Post-Hackathon (completed)
+- [x] Table Fusion visual mapping UI (task 021)
+- [x] Cross-source conflict matrix heatmap (task 022)
+- [x] Source Pipeline UI — upload CSV, AI dictionary, run pipeline from portal (task 023)
+- [x] Production sync to Neon — preview + push from portal
+- [x] All 6 specialist agents implemented (Rating, Scope, Taxonomy, Research, Temporal + stubs)
+- [x] Knowledge Base RAG via PageIndex (searchDocumentIndex + navigateDocumentTree tools)
+
+### Deferred
 - [ ] Bulk column addition workflow
-- [ ] All 40 datasets processed (hackathon: 2-3 datasets as proof)
-- [ ] Cross-source conflict matrix heatmap
-- [ ] Production sync to Neon (hackathon: demo Dolt diffs as "push preview")
-- [ ] Batch warrant curation (hackathon: one-at-a-time curation)
+- [ ] All 40 datasets processed (proof: 2-3 datasets analyzed)
+- [ ] Batch warrant curation (one-at-a-time curation only)
 - [ ] Local model inference via Ollama (tested, too slow — using Anthropic API instead)
+- [ ] Source Collection Automation — URL queue, auto-download (PRD P2)
 
 ### If Running Behind
 - Day 1 PM: Skip WUCOLS, just do FirePerformancePlants as proof

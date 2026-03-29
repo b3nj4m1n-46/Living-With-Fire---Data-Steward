@@ -20,6 +20,18 @@ All endpoints are Next.js Route Handlers served from `admin/src/app/api/`.
 | `POST` | `/api/conflicts/{id}/research` | Fetch research context for a conflict |
 | `POST` | `/api/conflicts/{id}/specialist` | Run AI specialist analysis (rating or scope) |
 | `POST` | `/api/conflicts/batch` | Batch update conflict statuses |
+| `POST` | `/api/sources/upload` | Upload CSV file, return preview (headers, sample rows) |
+| `GET` | `/api/sources/create?suggestId={category}` | Suggest next source ID for a category |
+| `POST` | `/api/sources/create` | Create dataset folder with plants.csv + README.md |
+| `POST` | `/api/sources/dictionary` | AI-generate DATA-DICTIONARY.md from CSV |
+| `PUT` | `/api/sources/dictionary` | Save edited DATA-DICTIONARY.md content |
+| `POST` | `/api/sources/run` | Trigger full analysis pipeline (fire-and-forget) |
+| `GET` | `/api/sources/{batchId}/status` | Poll pipeline progress (step status, stats) |
+| `POST` | `/api/fusion/map` | Run schema mapping for a dataset |
+| `GET` | `/api/fusion/preview` | Preview fusion results |
+| `POST` | `/api/fusion/execute` | Execute fusion batch with reviewed mapping |
+| `GET` | `/api/fusion/{batchId}` | Fetch fusion batch detail |
+| `GET` | `/api/matrix` | Cross-source conflict matrix data |
 | `GET` | `/api/dolt/log` | Fetch Dolt commit history |
 | `GET` | `/api/dolt/status` | Check for uncommitted changes |
 | `POST` | `/api/dolt/commit` | Create a manual Dolt commit |
@@ -737,3 +749,257 @@ These endpoints read from and write to the following DoltgreSQL tables. Full sch
 | `dolt_commit_diff_*` | Read | Row-level diffs between commits (system tables) |
 
 See also: `docs/planning/PROPOSALS-SCHEMA.md` for the full data model.
+
+---
+
+## Source Pipeline Endpoints
+
+### `POST /api/sources/upload`
+
+Upload a CSV file and return a preview with headers, sample rows, and row count.
+
+**Source:** `admin/src/app/api/sources/upload/route.ts`
+
+#### Request
+
+`Content-Type: multipart/form-data` with a `file` field containing a `.csv` file.
+
+#### Response — 200 OK
+
+```json
+{
+  "uploadId": "uuid-string",
+  "headers": ["scientific_name", "common_name", "rating"],
+  "rowCount": 541,
+  "sampleRows": [["Ceanothus velutinus", "Snowbrush", "1"], ...],
+  "fileSize": 45321
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `uploadId` | `string` | UUID for referencing this upload in subsequent steps |
+| `headers` | `string[]` | CSV column headers |
+| `rowCount` | `number` | Total data rows (excluding header) |
+| `sampleRows` | `string[][]` | First 10 rows of data |
+| `fileSize` | `number` | File size in bytes |
+
+#### Errors
+
+| Status | Body | Cause |
+|--------|------|-------|
+| `400` | `{ "error": "No CSV file provided" }` | Missing file in form data |
+| `400` | `{ "error": "Only .csv files are accepted" }` | Wrong file extension |
+| `400` | `{ "error": "CSV must have a header row..." }` | File has fewer than 2 lines |
+
+#### Side Effects
+
+- Writes CSV content to `os.tmpdir()/lwf-uploads/{uploadId}.csv`
+
+---
+
+### `GET /api/sources/create?suggestId={category}`
+
+Suggest the next available source ID for a given category.
+
+**Source:** `admin/src/app/api/sources/create/route.ts`
+
+#### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `suggestId` | `string` | Category name (fire, deer, water, etc.) |
+
+#### Response — 200 OK
+
+```json
+{
+  "suggestedId": "FIRE-13"
+}
+```
+
+---
+
+### `POST /api/sources/create`
+
+Create a dataset folder with `plants.csv` and `README.md` from a previously uploaded CSV.
+
+**Source:** `admin/src/app/api/sources/create/route.ts`
+
+#### Request Body
+
+```json
+{
+  "uploadId": "uuid-string",
+  "name": "FirePerformancePlants",
+  "sourceId": "FIRE-13",
+  "category": "fire",
+  "url": "https://example.com/source",
+  "citation": "Author, Title, Year",
+  "notes": "Additional context"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `uploadId` | `string` | Yes | From the upload step |
+| `name` | `string` | Yes | Dataset folder name (no spaces) |
+| `sourceId` | `string` | Yes | Source ID code (e.g., FIRE-13) |
+| `category` | `string` | Yes | One of: fire, deer, water, pollinators, birds, native, invasive, traits, taxonomy |
+| `url` | `string` | No | Source URL |
+| `citation` | `string` | No | Citation text |
+| `notes` | `string` | No | Additional notes |
+
+#### Response — 200 OK
+
+```json
+{
+  "datasetFolder": "database-sources/fire/FirePerformancePlants",
+  "sourceId": "FIRE-13"
+}
+```
+
+#### Side Effects
+
+- Creates `database-sources/{category}/{name}/` directory
+- Writes `plants.csv` and `README.md`
+- Deletes the temp upload file
+
+---
+
+### `POST /api/sources/dictionary`
+
+Generate a DATA-DICTIONARY.md using AI analysis of CSV headers and sample data.
+
+**Source:** `admin/src/app/api/sources/dictionary/route.ts`
+**Requires:** `ANTHROPIC_API_KEY` environment variable
+
+#### Request Body
+
+```json
+{
+  "datasetFolder": "database-sources/fire/NewDataset",
+  "sourceId": "FIRE-13"
+}
+```
+
+#### Response — 200 OK
+
+```json
+{
+  "dictionary": "# Data Dictionary: NewDataset\n\n**Source ID:** `FIRE-13`\n..."
+}
+```
+
+#### Side Effects
+
+- Writes `DATA-DICTIONARY.md` to the dataset folder
+- Uses `claude-sonnet-4-20250514` for analysis
+
+---
+
+### `PUT /api/sources/dictionary`
+
+Save edited DATA-DICTIONARY.md content back to disk.
+
+#### Request Body
+
+```json
+{
+  "datasetFolder": "database-sources/fire/NewDataset",
+  "content": "# Data Dictionary: NewDataset\n..."
+}
+```
+
+#### Response — 200 OK
+
+```json
+{ "ok": true }
+```
+
+---
+
+### `POST /api/sources/run`
+
+Trigger the full analysis pipeline for a dataset. Returns immediately; the pipeline runs asynchronously.
+
+**Source:** `admin/src/app/api/sources/run/route.ts`
+
+#### Request Body
+
+```json
+{
+  "datasetFolder": "database-sources/fire/NewDataset",
+  "sourceDataset": "NewDataset",
+  "sourceId": "FIRE-13"
+}
+```
+
+#### Response — 200 OK
+
+```json
+{
+  "batchId": "uuid-string"
+}
+```
+
+#### Side Effects
+
+- Creates an `analysis_batches` record with `status = 'running'`, `batch_type = 'full_analysis'`
+- Spawns the `full-analysis` fusion bridge action asynchronously (30 min timeout)
+- Pipeline chains: matchPlantFlow → mapSchemaFlow → bulkEnhanceFlow → classifyConflictFlow → Dolt commit
+- Updates `analysis_batches.notes` with JSON step progress during execution
+- Sets status to `completed` or `failed` when done
+
+---
+
+### `GET /api/sources/{batchId}/status`
+
+Poll the progress of a running pipeline batch.
+
+**Source:** `admin/src/app/api/sources/[batchId]/status/route.ts`
+
+#### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `batchId` | `string` | Batch UUID from the run response |
+
+#### Response — 200 OK
+
+```json
+{
+  "batchId": "uuid-string",
+  "status": "running",
+  "sourceDataset": "NewDataset",
+  "currentStep": "enhancing",
+  "steps": [
+    { "name": "matching", "label": "Match Plants", "status": "completed", "detail": "342 matched, 18 unmatched" },
+    { "name": "mapping", "label": "Map Schema", "status": "completed", "detail": "12 columns mapped" },
+    { "name": "enhancing", "label": "Create Warrants", "status": "running" },
+    { "name": "classifying", "label": "Classify Conflicts", "status": "pending" },
+    { "name": "committing", "label": "Commit to Dolt", "status": "pending" }
+  ],
+  "stats": {
+    "totalRecords": 541,
+    "plantsMatched": 342,
+    "plantsUnmatched": 18,
+    "warrantsCreated": 1205,
+    "conflictsDetected": null,
+    "commitHash": null
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | `string` | `running`, `completed`, or `failed` |
+| `currentStep` | `string` | Name of the currently executing step |
+| `steps` | `array` | All 5 pipeline steps with status and detail text |
+| `stats` | `object` | Accumulated statistics (populated as steps complete) |
+
+#### Errors
+
+| Status | Body | Cause |
+|--------|------|-------|
+| `404` | `{ "error": "Batch not found" }` | No batch with that ID |

@@ -26,6 +26,8 @@ LivinWitFire/
 │   │   ├── IMPLEMENTATION-PLAN.md # Phased hackathon build plan
 │   │   ├── TASKS.md             # Rough task breakdown (not spec format)
 │   │   └── agents/              # Agent profile MDs (one per Genkit flow)
+│   ├── reference/               # API and system reference docs
+│   │   └── ADMIN-API-REFERENCE.md # All admin portal API endpoints with request/response shapes
 │   ├── tasks/                   # Spec-driven task documents (see below)
 │   │   ├── todo/                # Active specs, ready for implementation
 │   │   ├── future/              # Acknowledged but deferred
@@ -58,6 +60,43 @@ LivinWitFire/
 │   │   ├── openapi-spec.json    # Full OpenAPI 3.0 specification
 │   │   └── *.json               # Cached API responses for offline use
 │   └── Sources/                 # PostgreSQL dump (gitignored)
+│
+├── admin/                       # Next.js 16 admin portal
+│   ├── src/app/                 # App Router pages + API routes
+│   │   ├── page.tsx             # Dashboard
+│   │   ├── sources/             # Source pipeline — upload, registry, progress
+│   │   │   ├── page.tsx         # Source registry listing all datasets
+│   │   │   ├── upload/          # 4-step upload workflow (CSV → metadata → AI dict → run)
+│   │   │   └── [batchId]/       # Pipeline progress tracking (auto-refresh)
+│   │   ├── claims/              # Claim curation — warrant cards, synthesis, approval
+│   │   ├── conflicts/           # Conflict queue — filterable, research, batch ops
+│   │   ├── matrix/              # Cross-source conflict heatmap
+│   │   ├── warrants/            # Warrant browser
+│   │   ├── fusion/              # Schema mapping review and batch execution
+│   │   ├── sync/                # Preview and push to production
+│   │   ├── history/             # Dolt commit log and diff viewer
+│   │   └── api/                 # API routes
+│   │       ├── sources/         # Upload, create, dictionary, run, status polling
+│   │       ├── fusion/          # Map, preview, execute
+│   │       ├── warrants/        # Status updates
+│   │       ├── claims/          # Approve
+│   │       ├── conflicts/       # Detail, research, specialist, batch
+│   │       ├── synthesize/      # AI claim synthesis
+│   │       ├── matrix/          # Conflict matrix data
+│   │       ├── dolt/            # Log, status, commit, revert
+│   │       └── sync/            # Preview, push
+│   ├── src/components/          # UI components (shadcn/ui + base-ui)
+│   ├── src/lib/                 # DB connection, queries, fusion bridge
+│   │   ├── dolt.ts              # PostgreSQL pool + query<T>(), queryOne<T>()
+│   │   ├── fusion-bridge.ts     # Subprocess bridge to Genkit flows
+│   │   └── queries/             # Type-safe query functions per domain
+│   └── .env.local               # DoltgreSQL connection config
+│
+├── genkit/                      # Genkit agent pipeline
+│   ├── src/flows/               # 11 Genkit flows (match, map, enhance, classify, specialists, synthesize)
+│   ├── src/tools/               # 13 reusable tools (queryDolt, getDatasetContext, etc.)
+│   ├── src/scripts/             # CLI scripts + fusion-bridge.ts (JSON stdin/stdout for admin)
+│   └── src/config.ts            # Anthropic plugin + model assignments
 │
 ├── database-sources/            # 40 source datasets, organized by category
 │   ├── fire/                    # 12 fire resistance datasets (FIRE-01 through FIRE-12)

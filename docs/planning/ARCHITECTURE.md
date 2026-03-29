@@ -251,21 +251,29 @@ All agents are Genkit flows with typed input/output schemas. Full profiles with 
 Agents don't communicate with each other directly. The Next.js API routes orchestrate the flow:
 
 ```
-POST /api/analyze-source
+POST /api/sources/upload           ← Upload CSV, return preview
+POST /api/sources/create           ← Create dataset folder + README
+POST /api/sources/dictionary       ← AI-generate DATA-DICTIONARY.md
+POST /api/sources/run              ← Trigger full pipeline (fire-and-forget)
+GET  /api/sources/[batchId]/status ← Poll pipeline progress
+
+POST /api/sources/run (full-analysis action via fusion-bridge)
   → Schema Mapper (mapSchemaFlow)
-  → admin reviews mapping
   → Matcher (matchPlantFlow)
   → Bulk Enhancer (bulkEnhanceFlow) — creates warrants
   → Conflict Classifier (classifyConflictFlow) — detects conflicts
-  → Specialist dispatch (by conflict type)
-  → results stored in Dolt → UI renders warrant cards
+  → Dolt commit
+  → progress tracked in analysis_batches.notes (JSON)
 
-POST /api/synthesize-claim
+POST /api/fusion/map               ← Schema mapping only (for manual review)
+POST /api/fusion/execute            ← Execute with reviewed mapping config
+
+POST /api/synthesize
   → admin selects warrants
   → Synthesis Agent (synthesizeClaimFlow)
   → returns draft claim → admin reviews
 
-POST /api/finalize-claim
+POST /api/claims/approve
   → writes claim to Dolt
   → CALL dolt_commit(...)
   → provenance chain preserved
@@ -467,7 +475,7 @@ After admin merges approved changes to DoltgreSQL `main`:
 |-------|-----------|-----|
 | Staging DB | DoltgreSQL | Git-for-data with PostgreSQL wire protocol: branch, merge, diff, blame, revert |
 | Production DB | Neon PostgreSQL | Existing production, shared with lwf-app |
-| Admin Portal | Next.js 14 + shadcn/ui + Tailwind | Fast tables, forms, API routes |
+| Admin Portal | Next.js 16 + shadcn/ui + Tailwind | Fast tables, forms, API routes, source upload pipeline |
 | DB Access | pg (Node) | Single client for both DoltgreSQL (staging) and Neon (production) |
 | Agent Framework | Google Genkit | Model-agnostic flows with typed schemas, tool registration, observability |
 | LLM | Anthropic API (Haiku 4.5 + Sonnet 4.6) | Haiku for bulk/internal agents, Sonnet for admin-facing synthesis |
