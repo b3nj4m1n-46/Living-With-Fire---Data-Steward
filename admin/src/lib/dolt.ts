@@ -3,7 +3,7 @@ import { Pool } from "pg";
 const pool = new Pool({
   connectionString:
     process.env.DOLT_CONNECTION_STRING ||
-    "postgresql://doltgres:lwf@localhost:5433/lwf_staging",
+    "postgresql://postgres:password@localhost:5433/lwf_staging",
 });
 
 /**

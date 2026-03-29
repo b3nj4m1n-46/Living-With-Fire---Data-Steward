@@ -48,7 +48,7 @@ if (-not (Test-Path $doltExe)) {
     Write-Host "ERROR: doltgres not found. Install from https://github.com/dolthub/doltgresql/releases" -ForegroundColor Red
     exit 1
 }
-$script:dolt = Start-Process $doltExe -ArgumentList "--config","$root\lwf-staging\config.yaml" -WorkingDirectory "$root\lwf-staging" -PassThru
+$script:dolt = Start-Process $doltExe -ArgumentList "--config","`"$root\lwf-staging\config.yaml`"" -WorkingDirectory "$root\lwf-staging" -PassThru -NoNewWindow
 Write-Host "DoltgreSQL started (PID $($script:dolt.Id)) on port 5433"
 
 # Give Dolt a moment to bind the port
@@ -56,7 +56,14 @@ Start-Sleep -Seconds 2
 
 # Start Next.js dev server as a tracked process (not foreground npm)
 Write-Host "Starting admin portal on http://localhost:3000 ..."
-$script:nextProc = Start-Process "npm" -ArgumentList "run","dev" -WorkingDirectory "$root\admin" -PassThru -NoNewWindow
+$nodeExe = (Get-Command node -ErrorAction SilentlyContinue).Source
+if (-not $nodeExe) {
+    Write-Host "ERROR: node not found in PATH" -ForegroundColor Red
+    Stop-AllDevProcesses
+    exit 1
+}
+$npmCliJs = Join-Path (Split-Path $nodeExe) "node_modules\npm\bin\npm-cli.js"
+$script:nextProc = Start-Process $nodeExe -ArgumentList "`"$npmCliJs`"","run","dev" -WorkingDirectory "$root\admin" -PassThru -NoNewWindow
 
 try {
     # Wait for the Next.js process — Ctrl+C breaks out of this
