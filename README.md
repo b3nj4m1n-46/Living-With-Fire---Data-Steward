@@ -19,6 +19,7 @@ flowchart LR
     subgraph Fusion ["Genkit Agent Pipeline"]
         direction TB
         match[Match] --> map[Map] --> enhance[Warrants] --> classify[Conflicts]
+        classify --> specialists[AI Specialists\n+ Synthesis]
     end
 
     Fusion --> Staging[(DoltgreSQL\nStaging)]
@@ -32,9 +33,6 @@ flowchart LR
         approve[Approve Claims]
         review --> resolve --> approve
     end
-
-    Admin -.-> |specialist analysis| AI["AI Specialists\n+ Synthesis"]
-    AI -.-> Staging
 
     Staging --> |sync| Prod[(Neon\nProduction DB)]
 ```
