@@ -1,5 +1,6 @@
 import { queryProd } from "@/lib/production";
 import { query } from "@/lib/dolt";
+import { KEY_ATTRIBUTE_IDS } from "@/lib/queries/coverage";
 
 // --- Types ---
 
@@ -9,6 +10,7 @@ export interface PlantListRow {
   species: string;
   common_name: string | null;
   attribute_count: number;
+  completeness_pct: number;
   last_updated: string | null;
 }
 
@@ -28,6 +30,7 @@ const SORTABLE_COLUMNS: Record<string, string> = {
   common_name: "p.common_name",
   last_updated: "p.last_updated",
   attribute_count: "attribute_count",
+  completeness: "filled_key_attributes",
 };
 
 // --- Query Functions ---
@@ -39,21 +42,28 @@ export async function fetchPlantList(
   sort = "scientific_name",
   order = "asc"
 ): Promise<PlantListResult> {
-  const conditions: string[] = [];
-  const params: unknown[] = [];
-  let paramIndex = 1;
+  // KEY_ATTRIBUTE_IDS occupy $1..$6
+  const keyParams: unknown[] = [...KEY_ATTRIBUTE_IDS];
+  const keyPlaceholders = KEY_ATTRIBUTE_IDS.map((_, i) => `$${i + 1}`).join(", ");
+
+  // Build WHERE for main query (key IDs occupy $1..$6, search starts at $7)
+  let mainWhere = "";
+  const mainSearchParams: unknown[] = [];
+  let mainParamIndex = KEY_ATTRIBUTE_IDS.length + 1; // 7
+
+  // Build WHERE for count query (search starts at $1, no key IDs needed)
+  let countWhere = "";
+  const countParams: unknown[] = [];
 
   if (search && search.trim()) {
     const term = `%${search.trim().toLowerCase()}%`;
-    conditions.push(
-      `(LOWER(p.genus || ' ' || p.species) LIKE $${paramIndex} OR LOWER(COALESCE(p.common_name, '')) LIKE $${paramIndex})`
-    );
-    params.push(term);
-    paramIndex++;
-  }
+    mainWhere = `WHERE (LOWER(p.genus || ' ' || p.species) LIKE $${mainParamIndex} OR LOWER(COALESCE(p.common_name, '')) LIKE $${mainParamIndex})`;
+    mainSearchParams.push(term);
+    mainParamIndex++;
 
-  const whereClause =
-    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    countWhere = `WHERE (LOWER(p.genus || ' ' || p.species) LIKE $1 OR LOWER(COALESCE(p.common_name, '')) LIKE $1)`;
+    countParams.push(term);
+  }
 
   const orderCol = SORTABLE_COLUMNS[sort] ?? SORTABLE_COLUMNS.scientific_name;
   const orderDir = order === "desc" ? "DESC" : "ASC";
@@ -61,26 +71,41 @@ export async function fetchPlantList(
 
   const offset = (page - 1) * limit;
 
-  const [plants, countResult] = await Promise.all([
-    queryProd<PlantListRow>(
+  const [rows, countResult] = await Promise.all([
+    queryProd<PlantListRow & { filled_key_attributes: number }>(
       `SELECT
          p.id,
          p.genus,
          p.species,
          p.common_name,
          (SELECT COUNT(*)::int FROM "values" WHERE plant_id = p.id) AS attribute_count,
+         (SELECT COUNT(DISTINCT attribute_id)::int
+          FROM "values"
+          WHERE plant_id = p.id AND attribute_id IN (${keyPlaceholders})
+         ) AS filled_key_attributes,
          p.last_updated
        FROM plants p
-       ${whereClause}
+       ${mainWhere}
        ${orderClause}
-       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
-      [...params, limit, offset]
+       LIMIT $${mainParamIndex} OFFSET $${mainParamIndex + 1}`,
+      [...keyParams, ...mainSearchParams, limit, offset]
     ),
     queryProd<{ count: number }>(
-      `SELECT COUNT(*)::int AS count FROM plants p ${whereClause}`,
-      params
+      `SELECT COUNT(*)::int AS count FROM plants p ${countWhere}`,
+      countParams
     ),
   ]);
+
+  const totalKey = KEY_ATTRIBUTE_IDS.length;
+  const plants: PlantListRow[] = rows.map((r) => ({
+    id: r.id,
+    genus: r.genus,
+    species: r.species,
+    common_name: r.common_name,
+    attribute_count: r.attribute_count,
+    completeness_pct: Math.round((r.filled_key_attributes / totalKey) * 1000) / 10,
+    last_updated: r.last_updated,
+  }));
 
   return {
     plants,

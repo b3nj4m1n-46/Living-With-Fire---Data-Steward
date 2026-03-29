@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,7 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -26,14 +25,12 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import type { AttributeCoverage, PlantCompleteness } from "@/lib/queries/coverage";
-import type { EnrichmentSummaryRow, SourceBreakdown } from "@/lib/queries/enrichment";
-import { OperationsTab } from "./operations-tab";
+import type { AttributeCoverage } from "@/lib/queries/coverage";
+import type { EnrichmentSummaryRow } from "@/lib/queries/enrichment";
 
 // ── Types ───────────────────────────────────────────────────────────────
 
 type AttrSort = "coverage_asc" | "coverage_desc" | "name" | "category";
-type PlantSort = "completeness_asc" | "completeness_desc" | "name";
 
 interface PlantGapRow {
   plantId: string;
@@ -220,14 +217,13 @@ function AttributeCoverageTab() {
         </TableHeader>
         <TableBody>
           {sorted.map((attr) => (
-            <>
+            <Fragment key={attr.attributeId}>
               <TableRow
-                key={attr.attributeId}
                 className="cursor-pointer"
                 onClick={() => toggleExpand(attr.attributeId)}
               >
                 <TableCell className="font-medium">
-                  {expandedAttr === attr.attributeId ? "▼ " : "▶ "}
+                  {expandedAttr === attr.attributeId ? "\u25BC " : "\u25B6 "}
                   {attr.attributeName}
                 </TableCell>
                 <TableCell>
@@ -243,7 +239,7 @@ function AttributeCoverageTab() {
                   {attr.gapCount.toLocaleString()}
                 </TableCell>
                 <TableCell className="text-right">
-                  {enrichMap.get(attr.attributeId)?.toLocaleString() ?? "—"}
+                  {enrichMap.get(attr.attributeId)?.toLocaleString() ?? "\u2014"}
                 </TableCell>
               </TableRow>
               {expandedAttr === attr.attributeId && (
@@ -288,7 +284,7 @@ function AttributeCoverageTab() {
                   </TableCell>
                 </TableRow>
               )}
-            </>
+            </Fragment>
           ))}
         </TableBody>
       </Table>
@@ -296,159 +292,7 @@ function AttributeCoverageTab() {
   );
 }
 
-// ── Plant Completeness Tab ──────────────────────────────────────────────
-
-function PlantCompletenessTab() {
-  const [plants, setPlants] = useState<PlantCompleteness[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [sort, setSort] = useState<PlantSort>("completeness_asc");
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const limit = 50;
-
-  const fetchPlants = useCallback(
-    async (s: PlantSort, p: number) => {
-      setLoading(true);
-      const res = await fetch(
-        `/api/coverage/plants?sort=${s}&page=${p}&limit=${limit}`
-      );
-      const json = await res.json();
-      setPlants(json.plants ?? []);
-      setTotal(json.total ?? 0);
-      setLoading(false);
-    },
-    [limit]
-  );
-
-  useEffect(() => {
-    fetchPlants(sort, page);
-  }, [sort, page, fetchPlants]);
-
-  const filtered = useMemo(() => {
-    if (!search.trim()) return plants;
-    const q = search.toLowerCase();
-    return plants.filter(
-      (p) =>
-        `${p.genus} ${p.species}`.toLowerCase().includes(q) ||
-        (p.commonName && p.commonName.toLowerCase().includes(q))
-    );
-  }, [plants, search]);
-
-  const totalPages = Math.ceil(total / limit);
-
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Input
-          placeholder="Search plants..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-64"
-        />
-        <span className="text-sm text-muted-foreground">Sort:</span>
-        {(
-          [
-            ["completeness_asc", "Least Complete"],
-            ["completeness_desc", "Most Complete"],
-            ["name", "Name"],
-          ] as const
-        ).map(([value, label]) => (
-          <Button
-            key={value}
-            variant={sort === value ? "default" : "outline"}
-            size="sm"
-            onClick={() => {
-              setSort(value);
-              setPage(1);
-            }}
-          >
-            {label}
-          </Button>
-        ))}
-      </div>
-
-      {loading ? (
-        <TableSkeleton cols={4} />
-      ) : (
-        <>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Plant</TableHead>
-                <TableHead>Common Name</TableHead>
-                <TableHead>Completeness</TableHead>
-                <TableHead className="text-right">Filled / Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={4}
-                    className="text-center text-muted-foreground"
-                  >
-                    {search ? "No plants match your search." : "No data."}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filtered.map((p) => (
-                  <TableRow key={p.plantId}>
-                    <TableCell>
-                      <Link
-                        href={`/plants/${p.plantId}`}
-                        className="font-medium hover:underline"
-                      >
-                        {p.genus} {p.species}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {p.commonName ?? "—"}
-                    </TableCell>
-                    <TableCell>
-                      <CoverageBar pct={p.completenessPct} />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {p.filledAttributes} / {p.totalKeyAttributes}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-2">
-              <p className="text-xs text-muted-foreground">
-                Page {page} of {totalPages} ({total.toLocaleString()} plants)
-              </p>
-              <div className="flex gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => p - 1)}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-// ── Enrichment Opportunities Tab ────────────────────────────────────────
+// ── Enrichment Tab ──────────────────────────────────────────────────────
 
 function EnrichmentTab() {
   const [data, setData] = useState<EnrichmentSummaryRow[]>([]);
@@ -464,7 +308,6 @@ function EnrichmentTab() {
       });
   }, []);
 
-  // Group by source across all attributes
   const sourceGroups = useMemo(() => {
     const map = new Map<string, SourceGroup>();
 
@@ -581,30 +424,20 @@ function EnrichmentTab() {
 
 // ── Main Component ──────────────────────────────────────────────────────
 
-export function CoverageClient() {
+export function CoverageDetailTabs() {
   return (
     <Tabs defaultValue="attributes">
       <TabsList>
-        <TabsTrigger value="attributes">Attribute Coverage</TabsTrigger>
-        <TabsTrigger value="plants">Plant Completeness</TabsTrigger>
-        <TabsTrigger value="enrichment">Enrichment Opportunities</TabsTrigger>
-        <TabsTrigger value="operations">Operations</TabsTrigger>
+        <TabsTrigger value="attributes">Attribute Gaps</TabsTrigger>
+        <TabsTrigger value="enrichment">Enrichment</TabsTrigger>
       </TabsList>
 
       <TabsContent value="attributes">
         <AttributeCoverageTab />
       </TabsContent>
 
-      <TabsContent value="plants">
-        <PlantCompletenessTab />
-      </TabsContent>
-
       <TabsContent value="enrichment">
         <EnrichmentTab />
-      </TabsContent>
-
-      <TabsContent value="operations">
-        <OperationsTab />
       </TabsContent>
     </Tabs>
   );

@@ -10,6 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { OperationsToolbar } from "./operations-toolbar";
+import { CoverageSummaryCards } from "./coverage-summary";
 
 export const dynamic = "force-dynamic";
 
@@ -61,34 +63,44 @@ export default async function PlantsPage({ searchParams }: PageProps) {
     return order === "asc" ? " \u25B2" : " \u25BC";
   }
 
+  function completenessColor(pct: number) {
+    if (pct < 50) return "bg-red-500";
+    if (pct < 80) return "bg-yellow-500";
+    return "bg-green-500";
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Plants</h2>
-        <Link href="/plants/add">
-          <Button>Add New Plant</Button>
-        </Link>
-      </div>
+      <h2 className="text-2xl font-bold">Plants</h2>
+      <CoverageSummaryCards />
 
-      <form method="get" action="/plants" className="flex gap-2">
-        <input
-          type="text"
-          name="search"
-          defaultValue={search}
-          placeholder="Search by scientific or common name…"
-          className="flex h-9 w-full max-w-sm rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-        />
-        <Button type="submit" variant="outline">
-          Search
-        </Button>
-        {search && (
-          <Link href="/plants">
-            <Button variant="ghost" type="button">
-              Clear
-            </Button>
+      <div className="flex items-center justify-between gap-2">
+        <form method="get" action="/plants" className="flex gap-2">
+          <input
+            type="text"
+            name="search"
+            defaultValue={search}
+            placeholder="Search by scientific or common name…"
+            className="flex h-9 w-full max-w-sm rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          />
+          <Button type="submit" variant="outline">
+            Search
+          </Button>
+          {search && (
+            <Link href="/plants">
+              <Button variant="ghost" type="button">
+                Clear
+              </Button>
+            </Link>
+          )}
+        </form>
+        <div className="flex items-center gap-2">
+          <OperationsToolbar />
+          <Link href="/plants/add">
+            <Button>Add New Plant</Button>
           </Link>
-        )}
-      </form>
+        </div>
+      </div>
 
       <Card>
         <CardContent className="p-0">
@@ -111,6 +123,11 @@ export default async function PlantsPage({ searchParams }: PageProps) {
                   </Link>
                 </TableHead>
                 <TableHead>
+                  <Link href={sortUrl("completeness")} className="hover:underline">
+                    Completeness{sortIndicator("completeness")}
+                  </Link>
+                </TableHead>
+                <TableHead>
                   <Link href={sortUrl("last_updated")} className="hover:underline">
                     Last Updated{sortIndicator("last_updated")}
                   </Link>
@@ -122,7 +139,7 @@ export default async function PlantsPage({ searchParams }: PageProps) {
               {result.plants.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={5}
+                    colSpan={6}
                     className="text-center text-muted-foreground py-8"
                   >
                     {search
@@ -146,18 +163,28 @@ export default async function PlantsPage({ searchParams }: PageProps) {
                     <TableCell className="text-right">
                       {plant.attribute_count.toLocaleString()}
                     </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-16 rounded-full bg-muted">
+                          <div
+                            className={`h-full rounded-full ${completenessColor(plant.completeness_pct)}`}
+                            style={{ width: `${Math.min(plant.completeness_pct, 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {plant.completeness_pct}%
+                        </span>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {plant.last_updated
                         ? new Date(plant.last_updated).toLocaleDateString()
                         : "—"}
                     </TableCell>
                     <TableCell>
-                      <Link
-                        href={`/plants/${plant.id}`}
-                        className="text-primary underline-offset-4 hover:underline text-sm"
-                      >
+                      <Button variant="default" size="sm" nativeButton={false} render={<Link href={`/plants/${plant.id}`} />}>
                         View
-                      </Link>
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -191,6 +218,7 @@ export default async function PlantsPage({ searchParams }: PageProps) {
           </div>
         </div>
       )}
+
     </div>
   );
 }

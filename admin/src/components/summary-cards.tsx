@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type {
   WarrantStats,
   ConflictStats,
@@ -158,12 +159,9 @@ export function SummaryCards({
               ))}
             </div>
           )}
-          <Link
-            href="/fusion"
-            className="mt-2 inline-block text-xs text-primary hover:underline"
-          >
+          <Button variant="outline" size="xs" className="mt-2" nativeButton={false} render={<Link href="/fusion" />}>
             View fusion pipeline
-          </Link>
+          </Button>
         </CardContent>
       </Card>
 
@@ -177,12 +175,9 @@ export function SummaryCards({
         <CardContent>
           <p className="text-3xl font-bold">{pendingSyncCount}</p>
           {pendingSyncCount > 0 ? (
-            <Link
-              href="/sync"
-              className="mt-2 inline-block text-xs text-primary hover:underline"
-            >
+            <Button variant="outline" size="xs" className="mt-2" nativeButton={false} render={<Link href="/sync" />}>
               Review & push to production
-            </Link>
+            </Button>
           ) : (
             <p className="mt-2 text-xs text-muted-foreground">
               All claims synced
@@ -203,12 +198,9 @@ export function SummaryCards({
             {internalAuditConflictCount.toLocaleString()}
           </p>
           {internalAuditConflictCount > 0 ? (
-            <Link
-              href="/conflicts?conflictMode=internal"
-              className="mt-2 inline-block text-xs text-primary hover:underline"
-            >
+            <Button variant="outline" size="xs" className="mt-2" nativeButton={false} render={<Link href="/conflicts?conflictMode=internal" />}>
               Review audit findings
-            </Link>
+            </Button>
           ) : (
             <p className="mt-2 text-xs text-muted-foreground">
               No issues found

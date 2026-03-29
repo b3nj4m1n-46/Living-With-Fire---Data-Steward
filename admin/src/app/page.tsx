@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -44,12 +45,9 @@ export default async function DashboardPage() {
             <p className="mt-1 text-xs text-muted-foreground">
               attribute{lowCoverageCount === 1 ? "" : "s"} below 50% coverage
             </p>
-            <Link
-              href="/coverage"
-              className="mt-2 inline-block text-xs text-primary hover:underline"
-            >
+            <Button variant="outline" size="xs" className="mt-2" nativeButton={false} render={<Link href="/coverage" />}>
               View coverage dashboard
-            </Link>
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -79,12 +77,9 @@ export default async function DashboardPage() {
                 </Link>
               ))}
             </div>
-            <Link
-              href="/conflicts?view=matrix"
-              className="mt-3 inline-block text-xs text-primary hover:underline"
-            >
+            <Button variant="outline" size="xs" className="mt-3" nativeButton={false} render={<Link href="/conflicts?view=matrix" />}>
               View full matrix
-            </Link>
+            </Button>
           </CardContent>
         </Card>
       )}

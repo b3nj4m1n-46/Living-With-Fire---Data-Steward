@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -137,10 +138,12 @@ export function BatchesTable({
               </p>
             ) : (
               conflictsBySeverity.map((s) => (
-                <Link
+                <Button
                   key={s.severity}
-                  href={`/conflicts?severity=${s.severity}`}
-                  className="flex items-center justify-between rounded-md px-3 py-2 transition-colors hover:bg-muted"
+                  variant="ghost"
+                  size="sm"
+                  className="flex w-full items-center justify-between"
+                  nativeButton={false} render={<Link href={`/conflicts?severity=${s.severity}`} />}
                 >
                   <Badge
                     variant={severityVariant(s.severity)}
@@ -151,7 +154,7 @@ export function BatchesTable({
                   <span className="text-sm font-medium">
                     {s.count.toLocaleString()}
                   </span>
-                </Link>
+                </Button>
               ))
             )}
           </CardContent>
@@ -171,9 +174,11 @@ export function BatchesTable({
             ) : (
               <>
                 {criticalPendingCount > 0 && (
-                  <Link
-                    href="/conflicts?severity=critical&status=pending"
-                    className="block rounded-md border px-3 py-2 transition-colors hover:bg-muted"
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex w-full items-center justify-start gap-1"
+                    nativeButton={false} render={<Link href="/conflicts?severity=critical&status=pending" />}
                   >
                     <span className="font-medium text-destructive">
                       {criticalPendingCount.toLocaleString()} critical conflicts
@@ -181,12 +186,14 @@ export function BatchesTable({
                     <span className="text-sm text-muted-foreground">
                       need review
                     </span>
-                  </Link>
+                  </Button>
                 )}
                 {unreviewedLatestBatchCount > 0 && (
-                  <Link
-                    href="/warrants?status=unreviewed"
-                    className="block rounded-md border px-3 py-2 transition-colors hover:bg-muted"
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex w-full items-center justify-start gap-1"
+                    nativeButton={false} render={<Link href="/warrants?status=unreviewed" />}
                   >
                     <span className="font-medium">
                       {unreviewedLatestBatchCount.toLocaleString()} unreviewed
@@ -195,7 +202,7 @@ export function BatchesTable({
                     <span className="text-sm text-muted-foreground">
                       from latest batch
                     </span>
-                  </Link>
+                  </Button>
                 )}
               </>
             )}

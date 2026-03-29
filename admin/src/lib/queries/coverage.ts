@@ -31,7 +31,7 @@ export interface PlantCompleteness {
 }
 
 // The 6 key attributes that drive the Relative Value Matrix
-const KEY_ATTRIBUTE_IDS = [
+export const KEY_ATTRIBUTE_IDS = [
   "d996587c-383b-4dc6-a23c-239b7de7e47b", // Flammability List Choice
   "d9174148-6563-4f92-9673-01feb6a529ce", // Water Amount
   "af3e70d2-dc9c-4027-a09f-15d7d8b0dd10", // Drought Tolerant

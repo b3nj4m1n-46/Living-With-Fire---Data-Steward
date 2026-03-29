@@ -18,7 +18,10 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   { items: [{ href: "/", label: "Dashboard" }] },
-  { label: "Plants", items: [{ href: "/plants", label: "Browse" }] },
+  { label: "Plants", items: [
+    { href: "/plants", label: "Browse" },
+    { href: "/coverage", label: "Coverage" },
+  ] },
   {
     label: "Data Pipeline",
     items: [
@@ -35,10 +38,6 @@ const navGroups: NavGroup[] = [
       { href: "/conflicts", label: "Conflicts" },
       { href: "/warrants", label: "Warrants", badge: "soon" },
     ],
-  },
-  {
-    label: "Quality",
-    items: [{ href: "/coverage", label: "Coverage" }],
   },
   {
     label: "Operations",
