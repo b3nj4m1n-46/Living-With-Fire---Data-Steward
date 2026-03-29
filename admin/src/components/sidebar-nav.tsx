@@ -14,6 +14,7 @@ const navItems = [
   { href: "/sources", label: "Sources" },
   { href: "/sources/documents", label: "Documents" },
   { href: "/sources/reliability", label: "Reliability" },
+  { href: "/coverage", label: "Coverage" },
   { href: "/fusion", label: "Fusion" },
   { href: "/sync", label: "Sync" },
   { href: "/history", label: "History" },

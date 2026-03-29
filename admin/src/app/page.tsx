@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { fetchDashboardData } from "@/lib/queries/dashboard";
+import { getAttributeCoverage } from "@/lib/queries/coverage";
 import { SummaryCards } from "@/components/summary-cards";
 import { BatchesTable } from "@/components/batches-table";
 import {
@@ -13,7 +14,11 @@ import { Badge } from "@/components/ui/badge";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const data = await fetchDashboardData();
+  const [data, coverage] = await Promise.all([
+    fetchDashboardData(),
+    getAttributeCoverage().catch(() => []),
+  ]);
+  const lowCoverageCount = coverage.filter((a) => a.coveragePct < 50).length;
 
   return (
     <div className="space-y-6">
@@ -27,6 +32,27 @@ export default async function DashboardPage() {
         pendingSyncCount={data.pendingSyncCount}
         internalAuditConflictCount={data.internalAuditConflictCount}
       />
+      {lowCoverageCount > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Coverage Gaps
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">{lowCoverageCount}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              attribute{lowCoverageCount === 1 ? "" : "s"} below 50% coverage
+            </p>
+            <Link
+              href="/coverage"
+              className="mt-2 inline-block text-xs text-primary hover:underline"
+            >
+              View coverage dashboard
+            </Link>
+          </CardContent>
+        </Card>
+      )}
       {data.topConflictingPairs.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
