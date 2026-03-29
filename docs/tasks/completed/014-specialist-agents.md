@@ -1,9 +1,10 @@
 # Specialist Agents — Rating and Scope Conflict Resolution
 
-> **Status:** TODO
+> **Status:** COMPLETED
 > **Priority:** P1 (important)
 > **Depends on:** 006-conflict-classifier-agent (classifyConflictFlow), 013-conflict-queue (conflict UI exists)
 > **Blocks:** None directly, but enhances conflict resolution quality for demo
+> **Commit:** e3449eb — Add rating and scope specialist agents (014) with classifier dispatch and API route
 
 ## Problem
 
