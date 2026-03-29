@@ -1,9 +1,10 @@
 # Table Fusion UI — Visual Schema Mapping for Source Datasets
 
-> **Status:** TODO
+> **Status:** COMPLETED
 > **Priority:** P1 (important)
 > **Depends on:** 005-schema-mapper-agent (mapSchemaFlow), 009-first-external-analysis (external-analysis.ts pipeline), 010-portal-scaffold
 > **Blocks:** 023-source-pipeline-ui (fusion UI is a prerequisite for the full pipeline UI)
+> **Commit:** `fad8ad7` — Add table fusion UI: schema mapping editor, preview, and pipeline execution (021)
 
 ## Problem
 
