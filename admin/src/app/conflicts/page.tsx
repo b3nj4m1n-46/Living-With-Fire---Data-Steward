@@ -3,8 +3,11 @@ import {
   fetchConflictFilterOptions,
   type ConflictListFilters,
 } from "@/lib/queries/conflicts";
-import { ConflictsFilters } from "./conflicts-filters";
-import { ConflictsTable } from "./conflicts-table";
+import {
+  fetchMatrixData,
+  type MatrixFilters,
+} from "@/lib/queries/conflict-matrix";
+import { ConflictsClient } from "./conflicts-client";
 
 export const dynamic = "force-dynamic";
 
@@ -31,27 +34,30 @@ export default async function ConflictsPage({
     page: params.page,
   };
 
-  const [{ rows, total }, filterOptions] = await Promise.all([
+  const matrixFilters: MatrixFilters = {
+    status: params.status,
+    severity: params.severity,
+    conflictType: params.conflictType,
+  };
+
+  const [{ rows, total }, filterOptions, matrixData] = await Promise.all([
     fetchConflictsList(filters),
     fetchConflictFilterOptions(),
+    fetchMatrixData(matrixFilters),
   ]);
 
   const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Conflicts</h2>
-
-      <ConflictsFilters options={filterOptions} currentFilters={filters} />
-
-      <ConflictsTable
-        rows={rows}
-        total={total}
-        page={page}
-        pageSize={PAGE_SIZE}
-        sortBy={filters.sortBy ?? "severity"}
-        sortDir={filters.sortDir ?? "desc"}
-      />
-    </div>
+    <ConflictsClient
+      rows={rows}
+      total={total}
+      page={page}
+      pageSize={PAGE_SIZE}
+      filters={filters}
+      filterOptions={filterOptions}
+      matrixData={matrixData}
+      matrixFilters={matrixFilters}
+    />
   );
 }

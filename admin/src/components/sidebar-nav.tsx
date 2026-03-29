@@ -2,22 +2,51 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
-const navItems = [
-  { href: "/", label: "Dashboard" },
-  { href: "/plants", label: "Plants" },
-  { href: "/conflicts", label: "Conflicts" },
-  { href: "/matrix", label: "Matrix" },
-  { href: "/claims", label: "Claims" },
-  { href: "/warrants", label: "Warrants" },
-  { href: "/sources", label: "Sources" },
-  { href: "/sources/documents", label: "Documents" },
-  { href: "/sources/reliability", label: "Reliability" },
-  { href: "/coverage", label: "Coverage" },
-  { href: "/fusion", label: "Fusion" },
-  { href: "/sync", label: "Sync" },
-  { href: "/history", label: "History" },
+interface NavItem {
+  href: string;
+  label: string;
+  badge?: string;
+}
+
+interface NavGroup {
+  label?: string;
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
+  { items: [{ href: "/", label: "Dashboard" }] },
+  { label: "Plants", items: [{ href: "/plants", label: "Browse" }] },
+  {
+    label: "Data Pipeline",
+    items: [
+      { href: "/sources", label: "Sources" },
+      { href: "/sources/documents", label: "Documents" },
+      { href: "/sources/reliability", label: "Reliability" },
+      { href: "/fusion", label: "Fusion" },
+    ],
+  },
+  {
+    label: "Curation",
+    items: [
+      { href: "/claims", label: "Claims" },
+      { href: "/conflicts", label: "Conflicts" },
+      { href: "/warrants", label: "Warrants", badge: "soon" },
+    ],
+  },
+  {
+    label: "Quality",
+    items: [{ href: "/coverage", label: "Coverage" }],
+  },
+  {
+    label: "Operations",
+    items: [
+      { href: "/sync", label: "Sync" },
+      { href: "/history", label: "History" },
+    ],
+  },
 ];
 
 export function SidebarNav({ onLinkClick }: { onLinkClick?: () => void } = {}) {
@@ -31,24 +60,45 @@ export function SidebarNav({ onLinkClick }: { onLinkClick?: () => void } = {}) {
       </div>
       <Separator />
       <nav className="flex flex-col gap-1 p-2">
-        {navItems.map(({ href, label }) => {
-          const isActive =
-            href === "/" ? pathname === "/" : pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              onClick={onLinkClick}
-              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              }`}
-            >
-              {label}
-            </Link>
-          );
-        })}
+        {navGroups.map((group, gi) => (
+          <div key={gi} className={group.label ? "mt-4" : ""}>
+            {group.label && (
+              <p className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+                {group.label}
+              </p>
+            )}
+            {group.items.map(({ href, label, badge }) => {
+              const isActive =
+                href === "/"
+                  ? pathname === "/"
+                  : pathname === href || pathname.startsWith(href + "/");
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={onLinkClick}
+                  className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                    group.label ? "pl-5" : ""
+                  } ${
+                    isActive
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  }`}
+                >
+                  {label}
+                  {badge && (
+                    <Badge
+                      variant="outline"
+                      className="ml-auto px-1.5 py-0 text-[10px] font-normal text-muted-foreground"
+                    >
+                      {badge}
+                    </Badge>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
     </div>
   );

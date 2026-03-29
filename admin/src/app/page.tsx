@@ -80,7 +80,7 @@ export default async function DashboardPage() {
               ))}
             </div>
             <Link
-              href="/matrix"
+              href="/conflicts?view=matrix"
               className="mt-3 inline-block text-xs text-primary hover:underline"
             >
               View full matrix

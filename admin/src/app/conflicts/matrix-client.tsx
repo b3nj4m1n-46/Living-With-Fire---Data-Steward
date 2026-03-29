@@ -127,11 +127,12 @@ export function MatrixClient({
     } else {
       params.delete(key);
     }
-    router.push(`/matrix?${params.toString()}`);
+    params.set("view", "matrix");
+    router.push(`/conflicts?${params.toString()}`);
   }
 
   function clearFilters() {
-    router.push("/matrix");
+    router.push("/conflicts?view=matrix");
   }
 
   const hasAnyFilter =
