@@ -13,11 +13,11 @@ const navItems = [
   { href: "/history", label: "History" },
 ];
 
-export function SidebarNav() {
+export function SidebarNav({ onLinkClick }: { onLinkClick?: () => void } = {}) {
   const pathname = usePathname();
 
   return (
-    <aside className="flex w-56 shrink-0 flex-col border-r bg-card">
+    <div className="flex h-full flex-col">
       <div className="px-4 py-5">
         <h1 className="text-lg font-semibold tracking-tight">LWF Admin</h1>
         <p className="text-xs text-muted-foreground">Plant Data Portal</p>
@@ -31,6 +31,7 @@ export function SidebarNav() {
             <Link
               key={href}
               href={href}
+              onClick={onLinkClick}
               className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-accent text-accent-foreground"
@@ -42,6 +43,6 @@ export function SidebarNav() {
           );
         })}
       </nav>
-    </aside>
+    </div>
   );
 }

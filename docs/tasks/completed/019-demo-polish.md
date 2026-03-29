@@ -1,6 +1,7 @@
 # Demo Polish — Seed Data, Narrative, UI Cleanup
 
-> **Status:** TODO
+> **Status:** COMPLETED
+> **Commit:** (pending)
 > **Priority:** P2 (normal)
 > **Depends on:** 014-specialist-agents, 015-synthesis-agent, 016-dolt-version-control-ui, 017-extract-agent-prompts, 018-production-sync (features to demo must exist)
 > **Blocks:** None

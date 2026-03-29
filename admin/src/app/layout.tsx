@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { SidebarNav } from "@/components/sidebar-nav";
-import { SaveChangesButton } from "@/components/save-changes-button";
+import { AppShell } from "@/components/app-shell";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -31,13 +30,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex h-full">
-        <SidebarNav />
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <header className="flex items-center justify-end border-b px-6 py-2">
-            <SaveChangesButton />
-          </header>
-          <main className="flex-1 overflow-y-auto p-6">{children}</main>
-        </div>
+        <AppShell>{children}</AppShell>
         <Toaster />
       </body>
     </html>
