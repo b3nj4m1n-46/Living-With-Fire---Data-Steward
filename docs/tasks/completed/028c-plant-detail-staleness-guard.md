@@ -1,9 +1,10 @@
 # 028c — Plant Detail Page + Sync Staleness Guard
 
-> **Status:** TODO
+> **Status:** COMPLETE
 > **Priority:** P2 (normal)
 > **Depends on:** 028a (plant browser provides navigation to detail pages)
 > **Blocks:** 028d (manual entry edit flow uses this page)
+> **Commit:** ad0297b
 
 ## Problem
 
