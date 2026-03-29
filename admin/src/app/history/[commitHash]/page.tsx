@@ -29,7 +29,7 @@ export default async function CommitDiffPage({
   if (!logEntry) {
     return (
       <div>
-        <Button variant="outline" size="sm" render={<Link href="/history" />}>
+        <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/history" />}>
           Back to History
         </Button>
         <p className="mt-4 text-muted-foreground">Commit not found.</p>
@@ -39,7 +39,7 @@ export default async function CommitDiffPage({
 
   return (
     <div>
-      <Button variant="outline" size="sm" className="mb-4" render={<Link href="/history" />}>
+      <Button variant="outline" size="sm" className="mb-4" nativeButton={false} render={<Link href="/history" />}>
         Back to History
       </Button>
 

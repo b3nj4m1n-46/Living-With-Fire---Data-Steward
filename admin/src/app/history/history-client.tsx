@@ -136,6 +136,7 @@ export function HistoryClient({
                       <Button
                         variant="outline"
                         size="sm"
+                        nativeButton={false}
                         render={<Link href={`/history/${entry.commit_hash}`} />}
                       >
                         View Changes
