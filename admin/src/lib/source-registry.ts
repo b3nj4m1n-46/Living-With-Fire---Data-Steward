@@ -4,6 +4,7 @@ export interface SourceEntry {
   sourceId: string;
   folder: string;
   category: string;
+  dbFile?: string;        // defaults to "plants.db"
   tableName: string;
   nameColumn: string;
   displayName: string;
@@ -145,6 +146,33 @@ export const SOURCE_DATABASES: SourceEntry[] = [
       "bloom_time",
       "flower_color",
     ],
+  },
+
+  {
+    sourceId: "FIRE-03",
+    folder: "fire/FLAMITS",
+    category: "fire",
+    dbFile: "flamits.db",
+    tableName: "taxon",
+    nameColumn: "taxon_name",
+    displayName: "FLAMITS Flammability DB",
+    keyColumns: [
+      "growth_form",
+      "woodiness",
+      "leaf_phenology",
+      "lifespan",
+      "native_distrib",
+    ],
+  },
+  {
+    sourceId: "FIRE-10",
+    folder: "fire/FirescapingBook",
+    category: "fire",
+    dbFile: "plant_swaps.db",
+    tableName: "plant_swaps",
+    nameColumn: "replacement_scientific",
+    displayName: "Firescaping Book",
+    keyColumns: ["category", "swap_type"],
   },
 
   // Deer

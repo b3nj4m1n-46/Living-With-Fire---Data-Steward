@@ -284,6 +284,23 @@ export const COLUMN_TO_ATTRIBUTE: Record<string, AttributeMapping> = {
     attributeName: "Ease of Growth",
     category: "Plant Materials",
   },
+
+  // --- FLAMITS-specific ---
+  growth_form: {
+    attributeId: "ce4ce677-b02f-4d7d-b7f3-10052b65c03a",
+    attributeName: "Habit/Form",
+    category: "Growth",
+  },
+  woodiness: {
+    attributeId: "b2150aec-75ac-4b4b-aeb1-c339c5da563c",
+    attributeName: "Plant Structure",
+    category: "Growth",
+  },
+  leaf_phenology: {
+    attributeId: "eebb5a89-20be-4338-adfb-91c829201909",
+    attributeName: "Leaf Structure",
+    category: "Growth",
+  },
 };
 
 /**

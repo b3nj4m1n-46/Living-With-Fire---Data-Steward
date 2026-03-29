@@ -71,7 +71,7 @@ export interface PlantSuggestion {
 // --- SQLite Helpers ---
 
 function getDbPath(entry: SourceEntry): string {
-  return path.join(DATABASE_SOURCES_ROOT, entry.folder, "plants.db");
+  return path.join(DATABASE_SOURCES_ROOT, entry.folder, entry.dbFile || "plants.db");
 }
 
 function querySqlite(dbPath: string, sql: string, params: unknown[]): SqliteRow[] {
