@@ -6,6 +6,7 @@ import type {
   ConflictStats,
   ClaimStats,
   DatasetStats,
+  MappingStats,
 } from "@/lib/queries/dashboard";
 
 interface SummaryCardsProps {
@@ -13,6 +14,7 @@ interface SummaryCardsProps {
   conflicts: ConflictStats;
   claims: ClaimStats;
   datasets: DatasetStats;
+  mappingStats: MappingStats;
   pendingSyncCount: number;
 }
 
@@ -39,10 +41,11 @@ export function SummaryCards({
   conflicts,
   claims,
   datasets,
+  mappingStats,
   pendingSyncCount,
 }: SummaryCardsProps) {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
       {/* Total Warrants */}
       <Card>
         <CardHeader className="pb-2">
@@ -132,6 +135,33 @@ export function SummaryCards({
                 : `${datasets.sources.slice(0, 5).join(", ")} +${datasets.sources.length - 5} more`}
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Datasets Mapped */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Datasets Mapped
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-3xl font-bold">{mappingStats.total}</p>
+          {mappingStats.byStatus.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {mappingStats.byStatus.map((s) => (
+                <Badge key={s.status} variant="secondary">
+                  {s.count.toLocaleString()} {s.status}
+                </Badge>
+              ))}
+            </div>
+          )}
+          <Link
+            href="/fusion"
+            className="mt-2 inline-block text-xs text-primary hover:underline"
+          >
+            View fusion pipeline
+          </Link>
         </CardContent>
       </Card>
 

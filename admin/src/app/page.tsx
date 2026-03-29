@@ -23,6 +23,7 @@ export default async function DashboardPage() {
         conflicts={data.conflicts}
         claims={data.claims}
         datasets={data.datasets}
+        mappingStats={data.mappingStats}
         pendingSyncCount={data.pendingSyncCount}
       />
       {data.topConflictingPairs.length > 0 && (

@@ -20,6 +20,11 @@ export interface DatasetStats {
   sources: string[];
 }
 
+export interface MappingStats {
+  total: number;
+  byStatus: { status: string; count: number }[];
+}
+
 export interface AnalysisBatch {
   id: string;
   source_dataset: string;
@@ -43,6 +48,7 @@ export interface DashboardData {
   conflicts: ConflictStats;
   claims: ClaimStats;
   datasets: DatasetStats;
+  mappingStats: MappingStats;
   batches: AnalysisBatch[];
   criticalPendingCount: number;
   unreviewedLatestBatchCount: number;
@@ -64,6 +70,8 @@ export async function fetchDashboardData(): Promise<DashboardData> {
     criticalPending,
     unreviewedLatest,
     pendingSync,
+    mappingTotal,
+    mappingByStatus,
     topPairs,
   ] = await Promise.all([
     queryOne<{ count: string }>("SELECT COUNT(*) as count FROM warrants"),
@@ -97,6 +105,12 @@ export async function fetchDashboardData(): Promise<DashboardData> {
     ),
     queryOne<{ count: string }>(
       "SELECT COUNT(*) as count FROM claims WHERE status = 'approved' AND (pushed_to_production IS NULL OR pushed_to_production = false)"
+    ),
+    queryOne<{ count: string }>(
+      "SELECT COUNT(*) as count FROM analysis_batches WHERE batch_type = 'schema_mapping'"
+    ),
+    query<{ status: string; count: string }>(
+      "SELECT status, COUNT(*) as count FROM analysis_batches WHERE batch_type = 'schema_mapping' GROUP BY status"
     ),
     query<{ source_a: string; source_b: string; count: string }>(
       `SELECT source_a, source_b, COUNT(*)::int AS count
@@ -133,6 +147,13 @@ export async function fetchDashboardData(): Promise<DashboardData> {
     datasets: {
       completed: Number(completedDatasets?.count ?? 0),
       sources: datasetSources.map((r) => r.source_id_code),
+    },
+    mappingStats: {
+      total: Number(mappingTotal?.count ?? 0),
+      byStatus: mappingByStatus.map((r) => ({
+        status: r.status,
+        count: Number(r.count),
+      })),
     },
     batches,
     criticalPendingCount: Number(criticalPending?.count ?? 0),
