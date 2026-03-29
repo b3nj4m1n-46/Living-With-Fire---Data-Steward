@@ -8,7 +8,7 @@ import { sampleSourceData } from '../tools/sampleSourceData.js';
 import { extractJSON } from '../utils/extractJSON.js';
 import { loadPrompt } from '../prompts/load.js';
 
-const REPO_ROOT = resolve(import.meta.dirname, '..', '..');
+const REPO_ROOT = resolve(import.meta.dirname, '..', '..', '..');
 
 // --- Schemas ---
 

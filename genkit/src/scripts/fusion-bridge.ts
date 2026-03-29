@@ -21,13 +21,19 @@ import { doltPool } from '../tools/index.js';
 import { getDatasetContext } from '../tools/datasetContext.js';
 import { mapSchemaFlow } from '../flows/mapSchemaFlow.js';
 import { matchPlantFlow } from '../flows/matchPlantFlow.js';
-import { bulkEnhanceFlow } from '../flows/bulkEnhanceFlow.js';
+import { bulkEnhanceFlow, type MatchResult } from '../flows/bulkEnhanceFlow.js';
 import { classifyConflictFlow } from '../flows/classifyConflictFlow.js';
 import { synthesizeClaimFlow } from '../flows/synthesizeClaimFlow.js';
 import { parseCSV } from '../utils/csv.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(__dirname, '..', '..');
+const REPO_ROOT = resolve(__dirname, '..', '..', '..');
+
+// Redirect console.log to stderr so only the final JSON result goes to stdout
+const originalLog = console.log;
+console.log = (...args: unknown[]) => {
+  process.stderr.write(args.map(String).join(' ') + '\n');
+};
 
 // --- Read stdin ---
 
@@ -96,12 +102,21 @@ async function buildPlantInputs(datasetFolder: string, datasetName: string) {
   const parsed = parseCSV(content);
   return {
     totalRecords: parsed.rows.length,
-    plantInputs: parsed.rows.map((row, idx) => ({
-      sourceRowId: String(idx + 2),
-      scientificName: row['scientific_name'] ?? '',
-      commonName: row['common_name'],
-      sourceDataset: datasetName,
-    })),
+    plantInputs: parsed.rows.map((row, idx) => {
+      // Support datasets that use 'genus' instead of 'scientific_name'
+      const scientificName =
+        row['scientific_name'] ||
+        row['botanical_name'] ||
+        row['species'] ||
+        row['taxon'] ||
+        (row['genus'] ? `${row['genus']} spp.` : '');
+      return {
+        sourceRowId: String(idx + 2),
+        scientificName,
+        commonName: row['common_name'],
+        sourceDataset: datasetName,
+      };
+    }),
   };
 }
 
@@ -143,6 +158,40 @@ async function handlePreview(input: PreviewInput) {
   };
 }
 
+async function expandGenusMatches(
+  matches: MatchResult[],
+): Promise<MatchResult[]> {
+  const expanded: MatchResult[] = [];
+  const client = await doltPool.connect();
+  try {
+    for (const m of matches) {
+      if (m.matchType === 'GENUS_ONLY' && !m.productionPlantId && m.productionGenus) {
+        // Expand to all species in this genus
+        const result = await client.query(
+          `SELECT id, genus, species FROM plants WHERE LOWER(genus) = LOWER($1)`,
+          [m.productionGenus],
+        );
+        for (const row of result.rows) {
+          expanded.push({
+            ...m,
+            productionPlantId: row.id,
+            productionSpecies: row.species,
+            notes: `${m.notes} — expanded to ${row.genus} ${row.species ?? 'sp.'}`,
+          });
+        }
+        if (result.rows.length === 0) {
+          expanded.push(m); // keep original if no plants found
+        }
+      } else {
+        expanded.push(m);
+      }
+    }
+  } finally {
+    client.release();
+  }
+  return expanded;
+}
+
 async function handleExecute(input: ExecuteInput) {
   const { totalRecords, plantInputs } = await buildPlantInputs(
     input.datasetFolder,
@@ -151,13 +200,16 @@ async function handleExecute(input: ExecuteInput) {
 
   // Step 1: Match
   const matchResult = await matchPlantFlow({ plants: plantInputs });
-  const plantsMatched = matchResult.summary.total - matchResult.summary.noMatch;
+
+  // Step 1.5: Expand genus-only matches to all species in genus
+  const expandedMatches = await expandGenusMatches(matchResult.matches);
+  const plantsMatched = expandedMatches.filter((m) => m.productionPlantId).length;
 
   // Step 2: Create warrants
   const enhanceResult = await bulkEnhanceFlow({
     sourceDataset: input.sourceDataset,
     datasetFolder: input.datasetFolder,
-    matchResults: matchResult.matches,
+    matchResults: expandedMatches,
     mappingConfig: input.mappingConfig as Parameters<typeof bulkEnhanceFlow>[0]['mappingConfig'],
     batchId: input.batchId,
   });
@@ -247,7 +299,10 @@ async function handleFullAnalysis(input: FullAnalysisInput) {
   await updateStepProgress(input.batchId, 'matching', steps);
 
   const matchResult = await matchPlantFlow({ plants: plantInputs });
-  const plantsMatched = matchResult.summary.total - matchResult.summary.noMatch;
+
+  // Expand genus-only matches to all species in genus
+  const expandedMatches = await expandGenusMatches(matchResult.matches);
+  const plantsMatched = expandedMatches.filter((m) => m.productionPlantId).length;
 
   steps.matching = {
     status: 'completed',
@@ -299,7 +354,7 @@ async function handleFullAnalysis(input: FullAnalysisInput) {
   const enhanceResult = await bulkEnhanceFlow({
     sourceDataset: input.sourceDataset,
     datasetFolder: input.datasetFolder,
-    matchResults: matchResult.matches,
+    matchResults: expandedMatches,
     mappingConfig: mapResult as Parameters<typeof bulkEnhanceFlow>[0]['mappingConfig'],
     batchId: input.batchId,
   });

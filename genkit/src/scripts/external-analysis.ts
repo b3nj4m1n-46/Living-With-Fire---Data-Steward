@@ -25,7 +25,7 @@ import { classifyConflictFlow } from '../flows/classifyConflictFlow.js';
 import { parseCSV } from '../utils/csv.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(__dirname, '..', '..');
+const REPO_ROOT = resolve(__dirname, '..', '..', '..');
 const OUTPUT_DIR = resolve(__dirname, '..', '..', 'output');
 
 async function main() {

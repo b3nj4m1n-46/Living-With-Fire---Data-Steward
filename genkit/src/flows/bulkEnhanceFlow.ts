@@ -14,7 +14,7 @@ import { doltPool } from '../tools/index.js';
 import { matchResult } from './matchPlantFlow.js';
 import { columnMapping, mapSchemaOutput } from './mapSchemaFlow.js';
 
-const REPO_ROOT = resolve(import.meta.dirname, '..', '..');
+const REPO_ROOT = resolve(import.meta.dirname, '..', '..', '..');
 const BATCH_SIZE = 500;
 
 // --- Types ---
@@ -79,7 +79,12 @@ export async function bulkEnhanceFlow(input: BulkEnhanceInput): Promise<BulkEnha
 
   for (let rowIdx = 0; rowIdx < parsed.rows.length; rowIdx++) {
     const row = parsed.rows[rowIdx];
-    const sciName = row['scientific_name'] ?? '';
+    const sciName =
+      row['scientific_name'] ||
+      row['botanical_name'] ||
+      row['species'] ||
+      row['taxon'] ||
+      (row['genus'] ? `${row['genus']} spp.` : '');
 
     if (!sciName) {
       errors.push({ row: rowIdx + 2, error: 'Missing scientific_name' });
