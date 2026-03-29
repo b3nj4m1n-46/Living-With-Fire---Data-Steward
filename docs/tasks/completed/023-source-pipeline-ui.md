@@ -1,6 +1,7 @@
 # Source Pipeline UI — Upload, Map, Analyze from the Portal
 
-> **Status:** IMPLEMENTED
+> **Status:** COMPLETED
+> **Commit:** `f6103c0`
 > **Priority:** P2 (normal)
 > **Depends on:** 021-table-fusion-ui (mapping review UI must exist), 009-first-external-analysis (pipeline scripts)
 > **Blocks:** None
