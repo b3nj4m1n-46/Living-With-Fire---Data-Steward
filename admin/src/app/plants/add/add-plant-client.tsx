@@ -32,6 +32,12 @@ interface Suggestion {
   family: string | null;
 }
 
+interface SynonymResolution {
+  searchedName: string;
+  acceptedName: string;
+  acceptedCommonName: string | null;
+}
+
 interface TaxonomyResult {
   family: string | null;
   lifeform: string | null;
@@ -39,6 +45,7 @@ interface TaxonomyResult {
   nativeRange: string | null;
   commonName: string | null;
   sources: string[];
+  synonym: SynonymResolution | null;
 }
 
 interface ProductionMatch {
@@ -86,6 +93,7 @@ interface EditableAttribute {
   matchConfidence: number;
   included: boolean;
   edited: boolean;
+  calculated: boolean;
 }
 
 // --- Constants ---
@@ -96,6 +104,28 @@ const STEP_LABELS = [
   "Review Attributes",
   "Create",
 ];
+
+// Calculated attribute UUIDs (read-only, auto-derived)
+const CALCULATED_IDS = new Set([
+  "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "bacadba3-a4f8-4550-9906-6b5535a619b6",
+  "e8686d2e-fe16-440e-bc70-af4a0328cd05",
+  "b1000001-0001-4000-8000-000000000001",
+  "b1000001-0001-4000-8000-000000000002",
+  "b1000001-0001-4000-8000-000000000003",
+  "b1000001-0001-4000-8000-000000000004",
+  "b1000001-0001-4000-8000-000000000005",
+  "b1000001-0001-4000-8000-000000000006",
+  "b1000001-0001-4000-8000-000000000007",
+  "b1000001-0001-4000-8000-000000000008",
+  "b1000001-0001-4000-8000-000000000009",
+  "b1000001-0001-4000-8000-000000000010",
+  "b1000001-0001-4000-8000-000000000011",
+  "b1000001-0001-4000-8000-000000000012",
+  "b1000001-0001-4000-8000-000000000013",
+  "b1000001-0001-4000-8000-000000000014",
+  "b1000001-0001-4000-8000-000000000015",
+]);
 
 const CATEGORY_ORDER = [
   "Flammability",
@@ -255,6 +285,8 @@ export function AddPlantClient() {
           || field.sourceColumn.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
         const displayCategory = field.attributeCategory || hit.category;
 
+        const isCalc = field.attributeId ? CALCULATED_IDS.has(field.attributeId) : false;
+
         attrs.push({
           key: dedupKey,
           attributeId: field.attributeId,
@@ -266,8 +298,9 @@ export function AddPlantClient() {
           sourceDisplayName: hit.displayName,
           category: displayCategory,
           matchConfidence: hit.matchConfidence,
-          included: field.attributeId !== null, // auto-include only mapped fields
+          included: field.attributeId !== null && !isCalc, // auto-include only mapped non-calculated
           edited: false,
+          calculated: isCalc,
         });
       }
     }
@@ -354,7 +387,9 @@ export function AddPlantClient() {
 
   // --- Derived state ---
 
-  const plantName = selectedName || query.trim();
+  const rawName = selectedName || query.trim();
+  // Use accepted name if synonym was resolved
+  const plantName = lookupResult?.taxonomy.synonym?.acceptedName || rawName;
   const parts = plantName.split(/\s+/);
   const genus = parts[0] || "";
   const species = parts.slice(1).join(" ") || "";
@@ -487,6 +522,29 @@ export function AddPlantClient() {
       {/* Step 2: Source Hit Map */}
       {step === 2 && lookupResult && (
         <>
+          {/* Synonym resolution banner */}
+          {lookupResult.taxonomy.synonym && (
+            <Card className="border-blue-500">
+              <CardContent className="flex items-center gap-3 py-4">
+                <Badge
+                  variant="outline"
+                  className="border-blue-500 text-blue-700 dark:text-blue-400"
+                >
+                  Synonym resolved
+                </Badge>
+                <span className="text-sm">
+                  <span className="italic">{lookupResult.taxonomy.synonym.searchedName}</span>
+                  {" "}is a synonym of{" "}
+                  <span className="font-medium italic">{lookupResult.taxonomy.synonym.acceptedName}</span>
+                  {lookupResult.taxonomy.synonym.acceptedCommonName && (
+                    <> ({lookupResult.taxonomy.synonym.acceptedCommonName})</>
+                  )}
+                  . All searches used the accepted name.
+                </span>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Taxonomy info */}
           <Card>
             <CardHeader className="pb-3">
@@ -724,12 +782,18 @@ export function AddPlantClient() {
                             <Checkbox
                               checked={attr.included}
                               onCheckedChange={() => toggleAttribute(attr.key)}
+                              disabled={attr.calculated}
                             />
                           </TableCell>
                           <TableCell className="text-sm font-medium">
                             <div>
                               {attr.attributeName}
-                              {!attr.attributeId && (
+                              {attr.calculated && (
+                                <Badge variant="outline" className="ml-2 text-xs">
+                                  calculated
+                                </Badge>
+                              )}
+                              {!attr.attributeId && !attr.calculated && (
                                 <Badge variant="secondary" className="ml-2 text-xs">
                                   unmapped
                                 </Badge>
@@ -746,7 +810,7 @@ export function AddPlantClient() {
                                 updateAttributeValue(attr.key, e.target.value)
                               }
                               className="h-8 text-sm"
-                              disabled={!attr.included}
+                              disabled={!attr.included || attr.calculated}
                             />
                             {attr.edited && (
                               <span className="text-xs text-yellow-600">

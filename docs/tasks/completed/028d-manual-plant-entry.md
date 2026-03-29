@@ -4,14 +4,12 @@
 > **Priority:** P2 (normal)
 > **Depends on:** 028a (plant browser), 028c (plant detail page for post-creation view)
 > **Blocks:** Geographic expansion beyond Pacific NW
-> **Commits:** `7f4293a` — Add manual plant entry wizard with SQLite source lookup; `d03ec91` — Add attribute UUID crosswalk and mapped fields
+> **Commits:** `7f4293a` — Add manual plant entry wizard with SQLite source lookup; `d03ec91` — Add attribute UUID crosswalk and mapped fields; `pending` — Add synonym resolution and calculated field read-only
 
 ### Known Limitations (deferred to follow-up)
 
-1. **Synonym resolution** — POWO synonym data is accessible via SQLite but the lookup flow doesn't yet check for synonyms or suggest accepted names. Curator must search by the accepted name.
-2. **Calculated fields** — Step 3 does not mark calculated attributes as read-only. All fields are editable.
-3. **Source coverage** — 28 of 41 source databases are registered (datasets without `plants.db` files or with non-standard structures are excluded).
-4. **Unmapped source columns** — Some source columns (e.g., `cultivar`, `region`) don't have a production attribute mapping yet. These are shown with an "unmapped" badge and excluded by default; curator can still include them manually.
+1. **Source coverage** — 28 of 41 source databases are registered (datasets without `plants.db` files or with non-standard structures are excluded).
+2. **Unmapped source columns** — Some source columns (e.g., `cultivar`, `region`) don't have a production attribute mapping yet. These are shown with an "unmapped" badge and excluded by default; curator can still include them manually.
 
 ## Problem
 

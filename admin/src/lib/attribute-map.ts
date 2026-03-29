@@ -287,6 +287,32 @@ export const COLUMN_TO_ATTRIBUTE: Record<string, AttributeMapping> = {
 };
 
 /**
+ * Production attribute UUIDs that are auto-calculated and should not be
+ * manually edited. Derived from ATTRIBUTE-REGISTRY.md "Calculated: Yes" entries.
+ */
+export const CALCULATED_ATTRIBUTE_IDS = new Set([
+  "f47ac10b-58cc-4372-a567-0e02b2c3d479", // Idaho Zone Tier (Calculated)
+  "bacadba3-a4f8-4550-9906-6b5535a619b6", // Invasive (Calculated)
+  "e8686d2e-fe16-440e-bc70-af4a0328cd05", // Wildlife Sum (Calculated)
+  // Relative Value Matrix — all calculated
+  "b1000001-0001-4000-8000-000000000001", // Has Flammability Rating
+  "b1000001-0001-4000-8000-000000000002", // Has Water Amount
+  "b1000001-0001-4000-8000-000000000003", // Has Drought Tolerant
+  "b1000001-0001-4000-8000-000000000004", // Has Native Status
+  "b1000001-0001-4000-8000-000000000005", // Has Deer Resistance
+  "b1000001-0001-4000-8000-000000000006", // Wildlife Sum Component
+  "b1000001-0001-4000-8000-000000000007", // Has Landscape Use
+  "b1000001-0001-4000-8000-000000000008", // Has Erosion Control
+  "b1000001-0001-4000-8000-000000000009", // Invasive Component
+  "b1000001-0001-4000-8000-000000000010", // Has Soils Rating
+  "b1000001-0001-4000-8000-000000000011", // Has Availability
+  "b1000001-0001-4000-8000-000000000012", // Has Easy to Grow
+  "b1000001-0001-4000-8000-000000000013", // Has Edible Plant
+  "b1000001-0001-4000-8000-000000000014", // Has Climate Rating
+  "b1000001-0001-4000-8000-000000000015", // Value Sum Total
+]);
+
+/**
  * Resolve a source column name to its production attribute mapping.
  * Returns undefined if no mapping exists (unmapped raw source column).
  */
@@ -294,4 +320,11 @@ export function resolveAttribute(
   sourceColumn: string
 ): AttributeMapping | undefined {
   return COLUMN_TO_ATTRIBUTE[sourceColumn.toLowerCase()];
+}
+
+/**
+ * Check if an attribute UUID is calculated (should be read-only).
+ */
+export function isCalculatedAttribute(attributeId: string): boolean {
+  return CALCULATED_ATTRIBUTE_IDS.has(attributeId);
 }

@@ -14,6 +14,12 @@ import { resolveAttribute } from "@/lib/attribute-map";
 
 type SqliteRow = Record<string, unknown>;
 
+export interface SynonymResolution {
+  searchedName: string;
+  acceptedName: string;
+  acceptedCommonName: string | null;
+}
+
 export interface TaxonomyResult {
   family: string | null;
   lifeform: string | null;
@@ -21,6 +27,7 @@ export interface TaxonomyResult {
   nativeRange: string | null;
   commonName: string | null;
   sources: string[];
+  synonym: SynonymResolution | null;
 }
 
 export interface ProductionMatch {
@@ -90,7 +97,7 @@ function str(val: unknown): string | null {
 // --- Taxonomy Search ---
 
 export function searchTaxonomyBackbones(scientificName: string): TaxonomyResult {
-  const target = scientificName.trim();
+  let target = scientificName.trim();
 
   const result: TaxonomyResult = {
     family: null,
@@ -99,17 +106,59 @@ export function searchTaxonomyBackbones(scientificName: string): TaxonomyResult 
     nativeRange: null,
     commonName: null,
     sources: [],
+    synonym: null,
   };
 
-  // USDA PLANTS — common_name, family; scientific_name_full includes author so use LIKE
+  // USDA PLANTS — common_name, family; also handles synonym resolution
   const usda = TAXONOMY_BACKBONES.find((b) => b.sourceId === "TAXON-03")!;
-  const usdaRow = querySqliteOne(
-    getDbPath(usda),
+  const usdaDbPath = getDbPath(usda);
+
+  // First try as accepted name
+  let usdaRow = querySqliteOne(
+    usdaDbPath,
     `SELECT * FROM ${usda.tableName}
      WHERE ${usda.nameColumn} LIKE ? AND (is_synonym = 0 OR is_synonym = 'False')
      LIMIT 1`,
     [`${target}%`]
   );
+
+  // If not found as accepted, check if it's a synonym
+  if (!usdaRow) {
+    const synonymRow = querySqliteOne(
+      usdaDbPath,
+      `SELECT * FROM ${usda.tableName}
+       WHERE ${usda.nameColumn} LIKE ? AND (is_synonym = 1 OR is_synonym = 'True')
+       LIMIT 1`,
+      [`${target}%`]
+    );
+
+    if (synonymRow && str(synonymRow.symbol)) {
+      // Find the accepted name via the shared symbol
+      const acceptedRow = querySqliteOne(
+        usdaDbPath,
+        `SELECT * FROM ${usda.tableName}
+         WHERE symbol = ? AND (is_synonym = 0 OR is_synonym = 'False')
+         LIMIT 1`,
+        [synonymRow.symbol]
+      );
+
+      if (acceptedRow) {
+        const acceptedFullName = str(acceptedRow.scientific_name_full) || "";
+        const acceptedName = acceptedFullName.replace(/\s+[A-Z][a-z]*\.?.*$/, "").trim();
+
+        result.synonym = {
+          searchedName: target,
+          acceptedName,
+          acceptedCommonName: str(acceptedRow.common_name),
+        };
+
+        // Use the accepted name for all subsequent searches
+        target = acceptedName;
+        usdaRow = acceptedRow;
+      }
+    }
+  }
+
   if (usdaRow) {
     result.commonName = str(usdaRow.common_name);
     result.family = str(usdaRow.family);
@@ -329,8 +378,11 @@ export async function lookupPlant(
   scientificName: string
 ): Promise<LookupResult> {
   const taxonomy = searchTaxonomyBackbones(scientificName);
-  const sourceHits = searchSourceDatabases(scientificName);
-  const productionMatch = await searchProductionDb(scientificName);
+
+  // If synonym was resolved, search sources + production under the accepted name
+  const searchName = taxonomy.synonym?.acceptedName || scientificName;
+  const sourceHits = searchSourceDatabases(searchName);
+  const productionMatch = await searchProductionDb(searchName);
 
   return { taxonomy, productionMatch, sourceHits };
 }
