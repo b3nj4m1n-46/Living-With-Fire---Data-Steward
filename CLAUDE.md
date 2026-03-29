@@ -79,7 +79,7 @@ LivinWitFire/
 │   │   ├── claims/              # Claim curation — warrant cards, synthesis, approval
 │   │   ├── conflicts/           # Conflict queue — filterable, research, batch ops
 │   │   ├── matrix/              # Cross-source conflict heatmap
-│   │   ├── coverage/            # Coverage dashboard — attribute gaps, plant completeness, enrichment
+│   │   ├── coverage/            # Coverage dashboard — attribute gaps, plant completeness, enrichment, agent operations
 │   │   ├── warrants/            # Warrant browser
 │   │   ├── fusion/              # Schema mapping review and batch execution
 │   │   ├── sync/                # Preview and push to production
@@ -95,6 +95,7 @@ LivinWitFire/
 │   │       ├── matrix/          # Conflict matrix data
 │   │       ├── coverage/        # Attribute coverage gaps, per-plant completeness
 │   │       ├── enrichment/      # Source-to-gap cross-reference suggestions
+│   │       ├── agents/          # Agent operations: status, counts, classify, synthesize
 │   │       ├── dolt/            # Log, status, commit, revert
 │   │       └── sync/            # Preview, push
 │   ├── src/components/          # UI components (shadcn/ui + base-ui)

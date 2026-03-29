@@ -50,6 +50,10 @@ All endpoints are Next.js Route Handlers served from `admin/src/app/api/`.
 | `GET` | `/api/dolt/status` | Check for uncommitted changes |
 | `POST` | `/api/dolt/commit` | Create a manual Dolt commit |
 | `POST` | `/api/dolt/revert` | Revert a recent commit |
+| `GET` | `/api/agents/status` | Running and recent agent operations |
+| `GET` | `/api/agents/counts` | Pending conflict count, unsynthesized pair count, last audit |
+| `POST` | `/api/agents/classify` | Trigger bulk conflict re-classification (fire-and-forget) |
+| `POST` | `/api/agents/synthesize` | Trigger bulk claim synthesis (fire-and-forget) |
 | `GET` | `/api/sync/preview` | Preview approved claims pending sync to production |
 | `POST` | `/api/sync/push` | Push approved claims to production Neon PostgreSQL |
 
@@ -1449,3 +1453,152 @@ Same `attributes` array format as `POST /api/plants/create`. Only changed attrib
   "claimCount": 3
 }
 ```
+
+---
+
+## `GET /api/agents/status`
+
+Returns currently running and recently completed agent operations (audit, classification, synthesis).
+
+**Source:** `admin/src/app/api/agents/status/route.ts`
+
+### Response
+
+```json
+{
+  "running": [
+    {
+      "id": "uuid",
+      "batch_type": "classify_existing",
+      "status": "running",
+      "started_at": "2026-03-29T...",
+      "completed_at": null,
+      "warrants_created": null,
+      "conflicts_detected": null,
+      "claims_generated": null,
+      "dolt_commit_hash": null,
+      "notes": "{\"currentStep\":\"classifying\",\"steps\":{\"classifying\":{\"status\":\"running\"},\"committing\":{\"status\":\"pending\"}}}"
+    }
+  ],
+  "recent": [
+    {
+      "id": "uuid",
+      "batch_type": "internal_audit",
+      "status": "completed",
+      "started_at": "2026-03-28T...",
+      "completed_at": "2026-03-28T...",
+      "warrants_created": 40,
+      "conflicts_detected": 15,
+      "claims_generated": null,
+      "dolt_commit_hash": "abc12345...",
+      "notes": "{...}"
+    }
+  ]
+}
+```
+
+### Batch Types
+
+| Type | Operation |
+|------|-----------|
+| `internal_audit` | Internal data quality audit |
+| `classify_existing` | Bulk conflict re-classification |
+| `bulk_synthesize` | Bulk claim synthesis |
+
+---
+
+## `GET /api/agents/counts`
+
+Returns counts of pending work and last audit summary for the Operations tab.
+
+**Source:** `admin/src/app/api/agents/counts/route.ts`
+
+### Response
+
+```json
+{
+  "pendingConflicts": 47,
+  "unsynthesizedPairs": 312,
+  "lastAudit": {
+    "batchId": "uuid",
+    "completedAt": "2026-03-28T...",
+    "warrantsCreated": 40,
+    "conflictsDetected": 15,
+    "notes": "{...}"
+  }
+}
+```
+
+`lastAudit` is `null` if no completed audit exists.
+
+---
+
+## `POST /api/agents/classify`
+
+Triggers bulk conflict re-classification via the fusion bridge. Returns immediately (fire-and-forget). Track progress via `GET /api/agents/status`.
+
+**Source:** `admin/src/app/api/agents/classify/route.ts`
+
+### Request Body
+
+```json
+{
+  "mode": "internal",
+  "plantIds": ["uuid-1", "uuid-2"],
+  "attributeFilter": "fire_resistance",
+  "runSpecialists": false
+}
+```
+
+All fields are optional. Defaults: `mode: "internal"`, `runSpecialists: false`.
+
+### Response (202 Accepted)
+
+```json
+{
+  "batch_id": "uuid"
+}
+```
+
+### Error: 409 Conflict
+
+Returned if a classification operation is already running.
+
+```json
+{
+  "error": "A classification operation is already running",
+  "batch_id": "existing-uuid"
+}
+```
+
+---
+
+## `POST /api/agents/synthesize`
+
+Triggers bulk claim synthesis via the fusion bridge. Finds plant-attribute pairs with warrants but no claim and synthesizes up to `limit` pairs. Returns immediately (fire-and-forget).
+
+**Source:** `admin/src/app/api/agents/synthesize/route.ts`
+
+### Request Body
+
+```json
+{
+  "plantIds": ["uuid-1"],
+  "attributeFilter": "deer_resistance",
+  "limit": 100
+}
+```
+
+All fields are optional. Default `limit: 100`.
+
+### Response (202 Accepted)
+
+```json
+{
+  "batch_id": "uuid"
+}
+```
+
+### Error: 409 Conflict
+
+Returned if a synthesis operation is already running.

@@ -196,7 +196,7 @@ AI-powered data fusion agents built with [Firebase Genkit](https://firebase.goog
 | `bootstrap-warrants.ts` | Convert 94,903 production values to warrants |
 | `internal-conflict-scan.ts` | Detect conflicts within existing production data |
 | `external-analysis.ts` | Full pipeline for processing a source dataset (CLI) |
-| `fusion-bridge.ts` | JSON stdin/stdout bridge for admin portal API routes (map, preview, execute, full-analysis) |
+| `fusion-bridge.ts` | JSON stdin/stdout bridge for admin portal API routes (map, preview, execute, full-analysis, classify-existing, bulk-synthesize) |
 | `test-matcher.ts` | Validate plant matching against FIRE-01 |
 
 ### 3. Admin Portal (`admin/`)
@@ -214,7 +214,7 @@ Next.js 16 admin portal with shadcn/ui for data steward curation workflow.
 | `/claims/[plantId]/[attributeId]` | Claim view — warrant cards, selection, synthesis, approval |
 | `/conflicts` | Conflict queue — filterable table with inline expansion, research, batch ops |
 | `/matrix` | Conflict matrix — cross-source heatmap visualization |
-| `/coverage` | Coverage dashboard — attribute gaps, plant completeness, enrichment opportunities |
+| `/coverage` | Coverage dashboard — attribute gaps, plant completeness, enrichment, agent operations |
 | `/warrants` | Warrant browser |
 | `/fusion` | Fusion — schema mapping review and batch execution |
 | `/fusion/[batchId]` | Fusion batch detail — mapping config review and crosswalk editing |
@@ -247,6 +247,10 @@ Next.js 16 admin portal with shadcn/ui for data steward curation workflow.
 | `/api/coverage/plants` | GET | Per-plant completeness scores (6 key attributes) |
 | `/api/enrichment` | GET | Enrichment summary: which source DBs can fill which gaps |
 | `/api/enrichment/[attributeId]` | GET | Enrichment candidates for one attribute |
+| `/api/agents/status` | GET | Running and recent agent operations |
+| `/api/agents/counts` | GET | Pending conflict count, unsynthesized pair count, last audit |
+| `/api/agents/classify` | POST | Trigger bulk conflict re-classification (fire-and-forget, 202) |
+| `/api/agents/synthesize` | POST | Trigger bulk claim synthesis (fire-and-forget, 202) |
 | `/api/dolt/log` | GET | Fetch Dolt commit history |
 | `/api/dolt/status` | GET | Check for uncommitted changes |
 | `/api/dolt/commit` | POST | Create manual Dolt commit |
