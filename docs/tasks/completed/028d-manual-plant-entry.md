@@ -4,7 +4,7 @@
 > **Priority:** P2 (normal)
 > **Depends on:** 028a (plant browser), 028c (plant detail page for post-creation view)
 > **Blocks:** Geographic expansion beyond Pacific NW
-> **Commits:** `7f4293a` — Add manual plant entry wizard with SQLite source lookup; `d03ec91` — Add attribute UUID crosswalk and mapped fields; `pending` — Add synonym resolution and calculated field read-only
+> **Commits:** `7f4293a` — Add manual plant entry wizard with SQLite source lookup; `d03ec91` — Add attribute UUID crosswalk and mapped fields; `c6541c3` — Add synonym resolution and calculated field read-only
 
 ### Known Limitations (deferred to follow-up)
 
