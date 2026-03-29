@@ -4,6 +4,11 @@ import { getWarrantGroups } from '../tools/warrantGroups.js';
 import { writeConflictsBatch, type ConflictInput } from '../tools/writeConflict.js';
 import { ratingConflictFlow, type SpecialistInput } from './ratingConflictFlow.js';
 import { scopeConflictFlow } from './scopeConflictFlow.js';
+import { taxonomyConflictFlow } from './taxonomyConflictFlow.js';
+import { researchConflictFlow } from './researchConflictFlow.js';
+import { temporalConflictFlow } from './temporalConflictFlow.js';
+import { methodologyConflictFlow } from './methodologyConflictFlow.js';
+import { definitionConflictFlow } from './definitionConflictFlow.js';
 import { extractJSON } from '../utils/extractJSON.js';
 import { loadPrompt } from '../prompts/load.js';
 
@@ -471,9 +476,7 @@ export const classifyConflictFlow = ai.defineFlow(
     // Step 4.5: Optional specialist dispatch (non-blocking)
     if (input.runSpecialists && !dryRun) {
       const dispatchable = allConflicts.filter(
-        (c) =>
-          c.conflictId &&
-          (c.specialistRoute === 'ratingConflictFlow' || c.specialistRoute === 'scopeConflictFlow'),
+        (c) => c.conflictId && c.specialistRoute != null,
       );
 
       if (dispatchable.length > 0) {
@@ -504,8 +507,16 @@ export const classifyConflictFlow = ai.defineFlow(
 
             if (conflict.specialistRoute === 'ratingConflictFlow') {
               return ratingConflictFlow(specialistInput);
-            } else {
+            } else if (conflict.specialistRoute === 'scopeConflictFlow') {
               return scopeConflictFlow(specialistInput);
+            } else if (conflict.specialistRoute === 'taxonomyConflictFlow') {
+              return taxonomyConflictFlow(specialistInput);
+            } else if (conflict.specialistRoute === 'temporalConflictFlow') {
+              return temporalConflictFlow(specialistInput);
+            } else if (conflict.specialistRoute === 'methodologyConflictFlow') {
+              return methodologyConflictFlow(specialistInput);
+            } else if (conflict.specialistRoute === 'definitionConflictFlow') {
+              return definitionConflictFlow(specialistInput);
             }
           }),
         );

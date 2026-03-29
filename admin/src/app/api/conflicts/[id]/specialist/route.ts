@@ -45,6 +45,14 @@ const VALID_RECOMMENDATIONS = [
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const SPECIALIST_MODEL = "claude-sonnet-4-6-20250514";
 
+// ── Specialist types ──────────────────────────────────────────────────
+
+const STUB_SPECIALISTS = ["methodologyConflictFlow", "definitionConflictFlow"];
+const LLM_SPECIALISTS = [
+  "ratingConflictFlow", "scopeConflictFlow",
+  "taxonomyConflictFlow", "researchConflictFlow", "temporalConflictFlow",
+];
+
 // ── Prompt builders ────────────────────────────────────────────────────
 
 function buildRatingPrompt(
@@ -186,7 +194,186 @@ Respond with ONLY valid JSON (no markdown fencing):
 }`;
 }
 
-// ── Anthropic API call ─────��───────────────────────────────────────────
+function buildTaxonomyPrompt(
+  conflict: ConflictDetail,
+  warrants: WarrantForContext[],
+  contexts: DatasetContext[],
+  kbResults: KBResult[]
+): string {
+  const warrantA = warrants[0];
+  const warrantB = warrants[1];
+  const ctxA = contexts.find((c) => c.sourceDataset === warrantA?.source_dataset);
+  const ctxB = contexts.find((c) => c.sourceDataset === warrantB?.source_dataset);
+
+  const kbSection = kbResults.length > 0
+    ? kbResults.map((r) => `### ${r.sectionTitle}\n${r.sectionSummary}`).join("\n\n")
+    : "No relevant knowledge base entries found.";
+
+  return `You are a plant taxonomy specialist analyzing a naming/granularity conflict. You have access to POWO/WCVP and World Flora Online as authoritative backbones.
+
+## Conflict Details
+- Plant: ${conflict.plant_name}
+- Attribute: ${conflict.attribute_name}
+- Source A (${conflict.source_a}): "${conflict.value_a}"
+- Source B (${conflict.source_b}): "${conflict.value_b}"
+- Classifier noted: ${conflict.classifier_explanation ?? "No explanation provided"}
+
+## Source A Context (${conflict.source_a})
+${ctxA?.dataDictionary ? `### Data Dictionary\n${ctxA.dataDictionary.slice(0, 3000)}` : "No data dictionary available."}
+
+${ctxA?.readme ? `### README\n${ctxA.readme.slice(0, 2000)}` : ""}
+
+## Source B Context (${conflict.source_b})
+${ctxB?.dataDictionary ? `### Data Dictionary\n${ctxB.dataDictionary.slice(0, 3000)}` : "No data dictionary available."}
+
+${ctxB?.readme ? `### README\n${ctxB.readme.slice(0, 2000)}` : ""}
+
+## Knowledge Base Research
+${kbSection}
+
+## Common Taxonomy Issues
+1. SYNONYMS: One name may be an old synonym of the other
+2. RECLASSIFICATION: Genus splits/merges over time
+3. GENUS vs SPECIES: Source rates genus-level but production has individual species
+4. CULTIVAR CONFUSION: Source rates a cultivar, production has the species
+5. SPELLING VARIANTS: Typos in source data
+6. AUTHORITY DIFFERENCES: Same binomial, different authors
+
+## Your Task
+Classify as SAME_TAXON, DIFFERENT_TAXA, GENUS_SPECIES_MISMATCH, CULTIVAR_SPECIES_MISMATCH, or UNRESOLVED.
+
+Respond with ONLY valid JSON (no markdown fencing):
+{
+  "verdict": "APPARENT",
+  "recommendation": "KEEP_BOTH",
+  "analysis": "...",
+  "confidence": 0.9,
+  "taxonomyAnalysis": {
+    "resolution": "SAME_TAXON",
+    "nameA": "...",
+    "nameB": "...",
+    "acceptedName": "...",
+    "backboneEvidence": "..."
+  }
+}`;
+}
+
+function buildResearchPrompt(
+  conflict: ConflictDetail,
+  warrants: WarrantForContext[],
+  contexts: DatasetContext[],
+  kbResults: KBResult[]
+): string {
+  const warrantA = warrants[0];
+  const warrantB = warrants[1];
+  const ctxA = contexts.find((c) => c.sourceDataset === warrantA?.source_dataset);
+  const ctxB = contexts.find((c) => c.sourceDataset === warrantB?.source_dataset);
+
+  const kbSection = kbResults.length > 0
+    ? kbResults.map((r) => `### ${r.sectionTitle}\n${r.sectionSummary}`).join("\n\n")
+    : "No relevant knowledge base entries found.";
+
+  return `You are a research agent with access to structured metadata for 40+ plant datasets AND knowledge-base document summaries. Synthesize evidence to evaluate this conflict.
+
+## Conflict Details
+- Plant: ${conflict.plant_name}
+- Attribute: ${conflict.attribute_name}
+- Source A (${conflict.source_a}): "${conflict.value_a}"
+- Source B (${conflict.source_b}): "${conflict.value_b}"
+- Classifier noted: ${conflict.classifier_explanation ?? "No explanation provided"}
+
+## Source A Context (${conflict.source_a})
+Methodology: ${warrantA?.source_methodology ?? "Unknown"}
+Region: ${warrantA?.source_region ?? "Unknown"}
+
+${ctxA?.dataDictionary ? `### Data Dictionary\n${ctxA.dataDictionary.slice(0, 3000)}` : "No data dictionary available."}
+
+${ctxA?.readme ? `### README\n${ctxA.readme.slice(0, 2000)}` : ""}
+
+## Source B Context (${conflict.source_b})
+Methodology: ${warrantB?.source_methodology ?? "Unknown"}
+Region: ${warrantB?.source_region ?? "Unknown"}
+
+${ctxB?.dataDictionary ? `### Data Dictionary\n${ctxB.dataDictionary.slice(0, 3000)}` : "No data dictionary available."}
+
+${ctxB?.readme ? `### README\n${ctxB.readme.slice(0, 2000)}` : ""}
+
+## Knowledge Base Document Findings
+${kbSection}
+
+## Your Task
+Synthesize all evidence. Compare methodologies, geographic scope, temporal context, and document findings.
+
+Respond with ONLY valid JSON (no markdown fencing):
+{
+  "verdict": "NUANCED",
+  "recommendation": "KEEP_BOTH_WITH_CONTEXT",
+  "analysis": "...",
+  "confidence": 0.7,
+  "datasetFindings": [{"sourceDataset": "...", "methodology": "...", "geographicScope": "...", "relevantExcerpt": "..."}],
+  "documentFindings": [{"documentName": "...", "sectionTitle": "...", "finding": "...", "relevance": "..."}]
+}`;
+}
+
+function buildTemporalPrompt(
+  conflict: ConflictDetail,
+  warrants: WarrantForContext[],
+  contexts: DatasetContext[],
+  kbResults: KBResult[]
+): string {
+  const warrantA = warrants[0];
+  const warrantB = warrants[1];
+  const ctxA = contexts.find((c) => c.sourceDataset === warrantA?.source_dataset);
+  const ctxB = contexts.find((c) => c.sourceDataset === warrantB?.source_dataset);
+
+  return `You are a temporal conflict specialist. When sources from different time periods disagree, determine whether the newer source supersedes the older one.
+
+## Conflict Details
+- Plant: ${conflict.plant_name}
+- Attribute: ${conflict.attribute_name}
+- Source A (${conflict.source_a}): "${conflict.value_a}"
+- Source B (${conflict.source_b}): "${conflict.value_b}"
+- Classifier noted: ${conflict.classifier_explanation ?? "No explanation provided"}
+
+## Source A Context (${conflict.source_a})
+Methodology: ${warrantA?.source_methodology ?? "Unknown"}
+Region: ${warrantA?.source_region ?? "Unknown"}
+
+${ctxA?.dataDictionary ? `### Data Dictionary\n${ctxA.dataDictionary.slice(0, 3000)}` : "No data dictionary available."}
+
+${ctxA?.readme ? `### README\n${ctxA.readme.slice(0, 2000)}` : ""}
+
+## Source B Context (${conflict.source_b})
+Methodology: ${warrantB?.source_methodology ?? "Unknown"}
+Region: ${warrantB?.source_region ?? "Unknown"}
+
+${ctxB?.dataDictionary ? `### Data Dictionary\n${ctxB.dataDictionary.slice(0, 3000)}` : "No data dictionary available."}
+
+${ctxB?.readme ? `### README\n${ctxB.readme.slice(0, 2000)}` : ""}
+
+## Temporal Assessment Rules
+1. Age alone does NOT determine quality.
+2. Check if newer source explicitly references the older one.
+3. Taxonomy changes over time may explain the conflict.
+4. Fire science pre-2000 used different testing standards.
+5. Climate change affects drought stress and flammability.
+6. Invasiveness assessments change as species spread.
+
+Respond with ONLY valid JSON (no markdown fencing):
+{
+  "verdict": "APPARENT",
+  "recommendation": "PREFER_B",
+  "analysis": "...",
+  "confidence": 0.8,
+  "temporalAnalysis": {
+    "yearGap": 15,
+    "newerSource": "B",
+    "supersedes": true
+  }
+}`;
+}
+
+// ── Anthropic API call ──���──��───────────────────────────────────────────
 
 async function callAnthropic(prompt: string): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -239,13 +426,11 @@ export async function POST(
       );
     }
 
-    // Only rating and scope specialists are implemented
-    if (
-      conflict.specialist_agent !== "ratingConflictFlow" &&
-      conflict.specialist_agent !== "scopeConflictFlow"
-    ) {
+    const agent = conflict.specialist_agent;
+
+    if (!STUB_SPECIALISTS.includes(agent) && !LLM_SPECIALISTS.includes(agent)) {
       return Response.json(
-        { error: `Specialist "${conflict.specialist_agent}" is not yet implemented` },
+        { error: `Specialist "${agent}" is not recognized` },
         { status: 400 }
       );
     }
@@ -256,27 +441,69 @@ export async function POST(
       conflict.warrant_b_id
     );
 
-    // 3. Load dataset contexts and search knowledge base
+    // 3. Handle stub specialists (no LLM call needed)
+    if (STUB_SPECIALISTS.includes(agent)) {
+      const [datasetContexts] = await Promise.all([
+        getDatasetContexts(warrants),
+      ]);
+
+      const warrantA = warrants[0];
+      const warrantB = warrants[1];
+      const ctxA = datasetContexts.find((c) => c.sourceDataset === warrantA?.source_dataset);
+      const ctxB = datasetContexts.find((c) => c.sourceDataset === warrantB?.source_dataset);
+
+      const label = agent === "methodologyConflictFlow" ? "Methodology" : "Definition";
+      const stubAnalysis =
+        `${label} conflict requires human review.\n\n` +
+        `Source A (${conflict.source_a}) methodology: ${warrantA?.source_methodology ?? "Unknown"}\n` +
+        `Source B (${conflict.source_b}) methodology: ${warrantB?.source_methodology ?? "Unknown"}\n\n` +
+        `--- Source A Data Dictionary ---\n${ctxA?.dataDictionary?.slice(0, 1500) ?? "Not available"}\n\n` +
+        `--- Source B Data Dictionary ---\n${ctxB?.dataDictionary?.slice(0, 1500) ?? "Not available"}`;
+
+      await updateSpecialistVerdict(id, "NUANCED", stubAnalysis, "HUMAN_DECIDE");
+
+      return Response.json({
+        verdict: "NUANCED",
+        recommendation: "HUMAN_DECIDE",
+        analysis: stubAnalysis,
+        confidence: 0,
+      } satisfies SpecialistResult);
+    }
+
+    // 4. Load dataset contexts and search knowledge base
     const [datasetContexts, kbResults] = await Promise.all([
       getDatasetContexts(warrants),
       searchKnowledgeBase(conflict.plant_name, conflict.attribute_name),
     ]);
 
-    // 4. Build prompt based on specialist type
-    const prompt =
-      conflict.specialist_agent === "scopeConflictFlow"
-        ? buildScopePrompt(conflict, warrants, datasetContexts, kbResults)
-        : buildRatingPrompt(conflict, warrants, datasetContexts, kbResults);
+    // 5. Build prompt based on specialist type
+    let prompt: string;
+    switch (agent) {
+      case "scopeConflictFlow":
+        prompt = buildScopePrompt(conflict, warrants, datasetContexts, kbResults);
+        break;
+      case "taxonomyConflictFlow":
+        prompt = buildTaxonomyPrompt(conflict, warrants, datasetContexts, kbResults);
+        break;
+      case "researchConflictFlow":
+        prompt = buildResearchPrompt(conflict, warrants, datasetContexts, kbResults);
+        break;
+      case "temporalConflictFlow":
+        prompt = buildTemporalPrompt(conflict, warrants, datasetContexts, kbResults);
+        break;
+      default:
+        prompt = buildRatingPrompt(conflict, warrants, datasetContexts, kbResults);
+        break;
+    }
 
-    // 5. Call Anthropic API
+    // 6. Call Anthropic API
     const responseText = await callAnthropic(prompt);
 
-    // 6. Parse response
+    // 7. Parse response
     let parsed: Record<string, unknown>;
     try {
       parsed = extractJSON(responseText);
     } catch {
-      // Retry once with correction prompt
       const retryText = await callAnthropic(
         "Your previous response was not valid JSON. Please respond with ONLY a JSON object " +
         "(no markdown fencing) matching this schema: { verdict, recommendation, analysis, confidence }. " +
@@ -285,7 +512,7 @@ export async function POST(
       parsed = extractJSON(retryText);
     }
 
-    // 7. Validate
+    // 8. Validate
     const verdict = VALID_VERDICTS.includes(parsed.verdict as string)
       ? (parsed.verdict as string)
       : "NUANCED";
@@ -302,17 +529,33 @@ export async function POST(
       ? Math.max(0, Math.min(1, parsed.confidence))
       : 0.5;
 
-    // For scope conflicts, append region analysis to the stored analysis
+    // 9. Append domain-specific analysis to stored analysis
     let fullAnalysis = analysis;
     const regionAnalysis = parsed.regionAnalysis as Record<string, unknown> | null;
     if (regionAnalysis && typeof regionAnalysis === "object") {
       fullAnalysis += `\n\n---\nRegion Analysis: ${JSON.stringify(regionAnalysis)}`;
     }
+    const taxonomyAnalysis = parsed.taxonomyAnalysis as Record<string, unknown> | null;
+    if (taxonomyAnalysis && typeof taxonomyAnalysis === "object") {
+      fullAnalysis += `\n\n---\nTaxonomy Analysis: ${JSON.stringify(taxonomyAnalysis)}`;
+    }
+    const temporalAnalysis = parsed.temporalAnalysis as Record<string, unknown> | null;
+    if (temporalAnalysis && typeof temporalAnalysis === "object") {
+      fullAnalysis += `\n\n---\nTemporal Analysis: ${JSON.stringify(temporalAnalysis)}`;
+    }
+    const datasetFindings = parsed.datasetFindings as unknown[] | null;
+    const documentFindings = parsed.documentFindings as unknown[] | null;
+    if (Array.isArray(datasetFindings)) {
+      fullAnalysis += `\n\n---\nDataset Findings: ${JSON.stringify(datasetFindings)}`;
+    }
+    if (Array.isArray(documentFindings)) {
+      fullAnalysis += `\n\nDocument Findings: ${JSON.stringify(documentFindings)}`;
+    }
 
-    // 8. Write results to DB
+    // 10. Write results to DB
     await updateSpecialistVerdict(id, verdict, fullAnalysis, recommendation);
 
-    // 9. Return result
+    // 11. Return result
     const result: SpecialistResult = {
       verdict,
       recommendation,
