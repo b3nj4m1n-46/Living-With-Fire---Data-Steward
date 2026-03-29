@@ -41,6 +41,11 @@ All endpoints are Next.js Route Handlers served from `admin/src/app/api/`.
 | `POST` | `/api/fusion/execute` | Execute fusion batch with reviewed mapping |
 | `GET` | `/api/fusion/{batchId}` | Fetch fusion batch detail |
 | `GET` | `/api/matrix` | Cross-source conflict matrix data |
+| `GET` | `/api/coverage` | Attribute coverage gap analysis |
+| `GET` | `/api/coverage/{attributeId}` | Plants missing a specific attribute |
+| `GET` | `/api/coverage/plants` | Per-plant completeness scores |
+| `GET` | `/api/enrichment` | Enrichment summary: source DBs that can fill gaps |
+| `GET` | `/api/enrichment/{attributeId}` | Enrichment candidates for one attribute |
 | `GET` | `/api/dolt/log` | Fetch Dolt commit history |
 | `GET` | `/api/dolt/status` | Check for uncommitted changes |
 | `POST` | `/api/dolt/commit` | Create a manual Dolt commit |
@@ -499,6 +504,195 @@ None required — the route reads the conflict and determines which specialist t
 - Loads dataset contexts (DATA-DICTIONARY.md, README.md) and knowledge base search results for both sources
 - Builds specialist-specific prompts (rating vs scope) with source methodology and regional context
 - Includes JSON extraction with one retry on parse failure
+
+---
+
+## Coverage & Enrichment Endpoints
+
+### `GET /api/coverage`
+
+Attribute coverage gap analysis across all production plants. Returns per-attribute counts of plants with/without values, excluding calculated attributes and Relative Value Matrix flags.
+
+**Source:** `admin/src/app/api/coverage/route.ts`
+
+#### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `sort` | `string` | `coverage_asc` | Sort: `coverage_asc`, `coverage_desc`, `name` |
+| `category` | `string` | — | Filter by parent attribute category (e.g., `Flammability`, `Water Requirements`) |
+
+#### Response — 200 OK
+
+```json
+[
+  {
+    "attributeId": "d996587c-383b-4dc6-a23c-239b7de7e47b",
+    "attributeName": "List Choice",
+    "category": "Flammability",
+    "plantsWithValue": 412,
+    "totalPlants": 1361,
+    "coveragePct": 30.3,
+    "gapCount": 949
+  }
+]
+```
+
+#### Implementation Notes
+
+- Queries Neon production DB (`queryProd`)
+- Excludes all `CALCULATED_ATTRIBUTE_IDS` and `b1000001-%` Relative Value Matrix flags
+- Joins `attributes` → parent `attributes` for category name
+- Coverage percentage rounded to 1 decimal place
+
+---
+
+### `GET /api/coverage/{attributeId}`
+
+List plants missing a specific attribute, with pagination.
+
+**Source:** `admin/src/app/api/coverage/[attributeId]/route.ts`
+
+#### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `attributeId` | `string` | Attribute UUID |
+
+#### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | `number` | `50` | Max results (capped at 100) |
+| `offset` | `number` | `0` | Pagination offset |
+
+#### Response — 200 OK
+
+```json
+{
+  "plants": [
+    {
+      "plantId": "uuid",
+      "genus": "Abelia",
+      "species": "grandiflora",
+      "commonName": "glossy abelia"
+    }
+  ],
+  "total": 949
+}
+```
+
+---
+
+### `GET /api/coverage/plants`
+
+Per-plant completeness scores against 6 key attributes: Flammability List Choice, Water Amount, Drought Tolerant, Deer Resistance, Native Status, and Wildlife Benefits.
+
+**Source:** `admin/src/app/api/coverage/plants/route.ts`
+
+#### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `sort` | `string` | `completeness_asc` | Sort: `completeness_asc`, `completeness_desc`, `name` |
+| `limit` | `number` | `50` | Max results (capped at 100) |
+| `page` | `number` | `1` | Page number |
+
+#### Response — 200 OK
+
+```json
+{
+  "plants": [
+    {
+      "plantId": "uuid",
+      "genus": "Abelia",
+      "species": "grandiflora",
+      "commonName": "glossy abelia",
+      "filledAttributes": 2,
+      "totalKeyAttributes": 6,
+      "completenessPct": 33.3
+    }
+  ],
+  "total": 1361,
+  "page": 1,
+  "limit": 50
+}
+```
+
+---
+
+### `GET /api/enrichment`
+
+Enrichment summary: for each gap attribute that has mapped source databases, shows how many production plants could be enriched and from which sources.
+
+**Source:** `admin/src/app/api/enrichment/route.ts`
+
+#### Response — 200 OK
+
+```json
+[
+  {
+    "attributeId": "d996587c-383b-4dc6-a23c-239b7de7e47b",
+    "attributeName": "List Choice",
+    "category": "Flammability",
+    "gapCount": 949,
+    "enrichableCount": 287,
+    "sourceBreakdown": [
+      { "sourceId": "FIRE-01", "displayName": "Fire Performance Plants (SREF)", "candidateCount": 145 },
+      { "sourceId": "FIRE-08", "displayName": "Oakland FireSafe", "candidateCount": 89 }
+    ]
+  }
+]
+```
+
+#### Implementation Notes
+
+- Scans SQLite source databases (read-only) via `better-sqlite3`
+- Uses reverse index from `source-attribute-map.ts` to find sources per attribute
+- Matches production `genus || ' ' || species` against source `scientific_name` (case-insensitive)
+- Results sorted by enrichable count descending (most impactful first)
+- Does NOT auto-ingest — suggestions only. Actual ingestion goes through the upload/fusion pipeline.
+
+---
+
+### `GET /api/enrichment/{attributeId}`
+
+Enrichment candidates for a specific attribute: production plants missing this attribute that have matching data in source SQLite databases.
+
+**Source:** `admin/src/app/api/enrichment/[attributeId]/route.ts`
+
+#### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `attributeId` | `string` | Attribute UUID |
+
+#### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | `number` | `50` | Max results (capped at 100) |
+| `offset` | `number` | `0` | Pagination offset |
+
+#### Response — 200 OK
+
+```json
+{
+  "candidates": [
+    {
+      "plantId": "uuid",
+      "genus": "Ceanothus",
+      "species": "velutinus",
+      "commonName": "snowbrush",
+      "sourceId": "FIRE-01",
+      "sourceDisplayName": "Fire Performance Plants (SREF)",
+      "sourceColumn": "firewise_rating",
+      "sourceValue": "1"
+    }
+  ],
+  "total": 145
+}
+```
 
 ---
 

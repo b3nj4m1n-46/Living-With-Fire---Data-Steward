@@ -92,6 +92,8 @@ LivinWitFire/
 │   │       ├── conflicts/       # Detail, research, specialist, batch
 │   │       ├── synthesize/      # AI claim synthesis
 │   │       ├── matrix/          # Conflict matrix data
+│   │       ├── coverage/        # Attribute coverage gaps, per-plant completeness
+│   │       ├── enrichment/      # Source-to-gap cross-reference suggestions
 │   │       ├── dolt/            # Log, status, commit, revert
 │   │       └── sync/            # Preview, push
 │   ├── src/components/          # UI components (shadcn/ui + base-ui)
@@ -100,6 +102,7 @@ LivinWitFire/
 │   │   ├── production.ts        # Neon PostgreSQL pool + queryProd<T>()
 │   │   ├── source-registry.ts   # Static registry: 30 source DBs + 3 taxonomy backbones
 │   │   ├── attribute-map.ts     # Source column → production attribute UUID crosswalk
+│   │   ├── source-attribute-map.ts # Reverse index: attribute UUID → source DB links
 │   │   ├── fusion-bridge.ts     # Subprocess bridge to Genkit flows
 │   │   ├── index-bridge.ts      # Subprocess bridge to PageIndex pipeline
 │   │   └── queries/             # Type-safe query functions per domain
@@ -107,6 +110,8 @@ LivinWitFire/
 │   │       ├── lookup.ts        # Cross-database species lookup (SQLite + Neon)
 │   │       ├── claims.ts        # Claim lifecycle queries
 │   │       ├── conflicts.ts     # Conflict analysis queries
+│   │       ├── coverage.ts      # Attribute coverage gap analysis (Neon)
+│   │       ├── enrichment.ts    # Source-to-gap enrichment candidates (SQLite)
 │   │       ├── dashboard.ts     # Admin dashboard aggregates
 │   │       ├── history.ts       # Dolt commit and audit logs
 │   │       └── sources.ts       # Data source registry

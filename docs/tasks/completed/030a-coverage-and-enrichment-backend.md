@@ -1,9 +1,10 @@
 # 030a — Coverage Analysis & Enrichment Suggestion Backend
 
-> **Status:** TODO
+> **Status:** COMPLETED
 > **Priority:** P1 (important)
 > **Depends on:** 028b (internal audit — completed)
 > **Blocks:** 030b (coverage dashboard UI)
+> **Commit:** `d707f30` — Add coverage analysis & enrichment suggestion backend (task 030a)
 
 ## Problem
 

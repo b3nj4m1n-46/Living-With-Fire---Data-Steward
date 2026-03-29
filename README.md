@@ -241,6 +241,11 @@ Next.js 16 admin portal with shadcn/ui for data steward curation workflow.
 | `/api/conflicts/[id]/specialist` | POST | Run AI specialist analysis (rating/scope) |
 | `/api/conflicts/batch` | POST | Batch dismiss/route conflicts |
 | `/api/matrix` | GET | Cross-source conflict matrix data |
+| `/api/coverage` | GET | Attribute coverage gap analysis (sort, category filter) |
+| `/api/coverage/[attributeId]` | GET | Plants missing a specific attribute |
+| `/api/coverage/plants` | GET | Per-plant completeness scores (6 key attributes) |
+| `/api/enrichment` | GET | Enrichment summary: which source DBs can fill which gaps |
+| `/api/enrichment/[attributeId]` | GET | Enrichment candidates for one attribute |
 | `/api/dolt/log` | GET | Fetch Dolt commit history |
 | `/api/dolt/status` | GET | Check for uncommitted changes |
 | `/api/dolt/commit` | POST | Create manual Dolt commit |
