@@ -1,6 +1,6 @@
 # 034 — Condense Coverage & Operations into Plants Browse Page
 
-> **Status:** TODO
+> **Status:** DONE — `1441265`, `61ca5a9`
 > **Priority:** P1 (important)
 > **Depends on:** None
 > **Blocks:** None
