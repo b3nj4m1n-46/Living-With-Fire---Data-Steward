@@ -7,63 +7,36 @@ A plant data collection and admin tooling project for building a fire-wise, wild
 ## Architecture
 
 ```mermaid
-flowchart TD
-    subgraph sources ["Source Data (866K+ records)"]
-        datasets["40 Source Datasets\ndatabase-sources/{fire,deer,water,...}"]
-        kb["52 Knowledge Base Documents\nknowledge-base/*.pdf"]
+flowchart LR
+    docs["40 Source\nDatasets"]
+    kb["52 Research\nDocuments"]
+
+    kb --> PageIndex --> KnowledgeDB[(Knowledge\nBase)]
+
+    docs --> |CSV upload| Fusion
+    KnowledgeDB -.-> |research context| Fusion
+
+    subgraph Fusion ["Genkit Agent Pipeline"]
+        direction TB
+        match[Match] --> map[Map] --> enhance[Warrants] --> classify[Conflicts]
     end
 
-    subgraph indexing ["Knowledge Indexing"]
-        pageindex["PageIndex\nStructure + keyword indexes"]
+    Fusion --> Staging[(DoltgreSQL\nStaging)]
+
+    Staging <--> |curation loop| Admin
+
+    subgraph Admin ["Admin Portal"]
+        direction TB
+        review[Review Warrants]
+        resolve[Resolve Conflicts]
+        approve[Approve Claims]
+        review --> resolve --> approve
     end
 
-    subgraph pipeline ["Genkit Agent Pipeline"]
-        match["matchPlantFlow\nExact + synonym + fuzzy matching"]
-        map["mapSchemaFlow\nAI column → attribute mapping"]
-        enhance["bulkEnhanceFlow\nWarrant creation from sources"]
-        classify["classifyConflictFlow\n8-type conflict detection"]
-        match --> map --> enhance --> classify
-    end
+    Admin -.-> |specialist analysis| AI["AI Specialists\n+ Synthesis"]
+    AI -.-> Staging
 
-    subgraph staging ["DoltgreSQL Staging DB (version-controlled)"]
-        warrants["Warrants\nSource evidence records"]
-        conflicts["Conflicts\nDetected disagreements"]
-        claims["Claims\nApproved curated values"]
-    end
-
-    subgraph admin ["Admin Portal (Next.js)"]
-        upload["Source Pipeline\nUpload CSV → AI dictionary → run"]
-        curation["Claim Curation\nWarrant cards, AI synthesis, approval"]
-        conflictq["Conflict Queue\nResearch context, specialist analysis"]
-        history["History\nDolt commit log, diff viewer"]
-    end
-
-    subgraph specialists ["AI Specialists (Anthropic Claude)"]
-        rating["Rating Conflict Specialist"]
-        scope["Scope Conflict Specialist"]
-        synth["Synthesis Agent\nMerge warrants → production claim"]
-    end
-
-    prod["Production DB (Neon PostgreSQL)\n1,361 curated plants\nlwf-api.vercel.app"]
-
-    %% Data flow
-    datasets --> upload
-    datasets --> pipeline
-    kb --> pageindex
-    pageindex --> conflictq
-    pipeline --> staging
-    warrants --> curation
-    conflicts --> conflictq
-
-    %% Admin curation loop
-    conflictq --> specialists
-    specialists --> staging
-    curation --> synth
-    synth --> claims
-
-    %% Production sync
-    claims -->|"Approve + Dolt commit"| staging
-    staging -->|"Sync / Push"| prod
+    Staging --> |sync| Prod[(Neon\nProduction DB)]
 ```
 
 ## Project Components
