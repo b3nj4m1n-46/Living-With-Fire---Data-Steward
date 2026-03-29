@@ -5,8 +5,9 @@ $root = $PSScriptRoot
 
 # Start DoltgreSQL in background
 $doltExe = (Get-Command doltgres -ErrorAction SilentlyContinue).Source
-if (-not $doltExe) {
-    Write-Host "ERROR: doltgres not found on PATH. Install from https://github.com/dolthub/doltgresql/releases" -ForegroundColor Red
+if (-not $doltExe) { $doltExe = "$env:USERPROFILE\bin\doltgres.exe" }
+if (-not (Test-Path $doltExe)) {
+    Write-Host "ERROR: doltgres not found. Install from https://github.com/dolthub/doltgresql/releases" -ForegroundColor Red
     exit 1
 }
 $dolt = Start-Process $doltExe -ArgumentList "--config","$root\lwf-staging\config.yaml" -WorkingDirectory "$root\lwf-staging" -PassThru
