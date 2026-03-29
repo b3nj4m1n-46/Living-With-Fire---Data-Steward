@@ -4,7 +4,12 @@
 $root = $PSScriptRoot
 
 # Start DoltgreSQL in background
-$dolt = Start-Process doltgres -WorkingDirectory "$root\lwf-staging" -PassThru
+$doltExe = (Get-Command doltgres -ErrorAction SilentlyContinue).Source
+if (-not $doltExe) {
+    Write-Host "ERROR: doltgres not found on PATH. Install from https://github.com/dolthub/doltgresql/releases" -ForegroundColor Red
+    exit 1
+}
+$dolt = Start-Process $doltExe -ArgumentList "--config","$root\lwf-staging\config.yaml" -WorkingDirectory "$root\lwf-staging" -PassThru
 Write-Host "DoltgreSQL started (PID $($dolt.Id)) on port 5433"
 
 # Give Dolt a moment to bind the port
