@@ -169,6 +169,43 @@ export async function fetchMatrixData(
   return { pairs, sources, maxConflicts };
 }
 
+// ── Pair Type Breakdown ─────────────────────────────────────────────────
+
+export interface PairTypeBreakdownRow {
+  conflict_type: string;
+  severity: string;
+  count: number;
+  pending: number;
+}
+
+export async function fetchPairTypeBreakdown(
+  sourceA: string,
+  sourceB: string
+): Promise<PairTypeBreakdownRow[]> {
+  const rows = await query<{
+    conflict_type: string;
+    severity: string;
+    count: string;
+    pending: string;
+  }>(
+    `SELECT conflict_type, severity,
+      COUNT(*)::int AS count,
+      SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END)::int AS pending
+    FROM conflicts
+    WHERE (source_a = $1 AND source_b = $2) OR (source_a = $2 AND source_b = $1)
+    GROUP BY conflict_type, severity
+    ORDER BY count DESC`,
+    [sourceA, sourceB]
+  );
+
+  return rows.map((r) => ({
+    conflict_type: r.conflict_type,
+    severity: r.severity,
+    count: Number(r.count),
+    pending: Number(r.pending),
+  }));
+}
+
 // ── Top Conflicting Pairs (for dashboard) ───────────────────────────────
 
 export async function fetchTopConflictingPairs(

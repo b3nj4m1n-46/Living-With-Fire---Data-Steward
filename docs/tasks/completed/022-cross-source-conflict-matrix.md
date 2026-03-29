@@ -1,6 +1,7 @@
 # Cross-Source Conflict Matrix — Heatmap of Source Disagreements
 
 > **Status:** COMPLETE
+> **Commit:** 3fbb570
 > **Priority:** P2 (normal)
 > **Depends on:** 007-internal-conflict-scan, 009-first-external-analysis, 013-conflict-queue (conflicts must exist in DB)
 > **Blocks:** None
