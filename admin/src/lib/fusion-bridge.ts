@@ -24,11 +24,23 @@ export async function callFusionBridge<T>(
         if (error) {
           let message = error.message;
           if (stderr) {
+            // stderr contains both progress logs (redirected console.log) AND
+            // the final JSON error on the last line. Try the last line first.
+            const lines = stderr.trimEnd().split('\n');
+            const lastLine = lines[lines.length - 1];
             try {
-              const parsed = JSON.parse(stderr);
-              message = parsed.error || stderr;
+              const parsed = JSON.parse(lastLine);
+              message = parsed.error || lastLine;
             } catch {
-              message = stderr;
+              try {
+                const parsed = JSON.parse(stderr);
+                message = parsed.error || stderr;
+              } catch {
+                // Fall back to last 500 chars to avoid massive error messages
+                message = stderr.length > 500
+                  ? '...' + stderr.slice(-500)
+                  : stderr;
+              }
             }
           }
           return reject(new Error(message));

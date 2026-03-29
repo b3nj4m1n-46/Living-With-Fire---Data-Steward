@@ -32,7 +32,7 @@ interface ValidationRow {
   genus: string;
   species: string;
   attribute_name: string;
-  values_allowed: string;
+  values_allowed: string | unknown[];
 }
 
 interface MissingProvenanceRow {
@@ -311,7 +311,9 @@ export async function runInternalAudit(
      JOIN plants p ON p.id = v.plant_id
      JOIN attributes a ON a.id = v.attribute_id
      WHERE a.values_allowed IS NOT NULL
-       AND a.values_allowed != ''
+       AND a.values_allowed::text != 'null'
+       AND a.values_allowed::text != '""'
+       AND length(a.values_allowed::text) > 2
        AND v."value" IS NOT NULL`
   );
 
@@ -319,9 +321,20 @@ export async function runInternalAudit(
   let validationFailures = 0;
 
   for (const r of validationRows) {
-    const allowed = r.values_allowed
-      .split(",")
-      .map((s) => s.trim().toLowerCase());
+    // values_allowed is a JSON array of {displayName: string, ...} objects
+    let allowedItems: { displayName?: string; id?: string }[];
+    try {
+      const raw = typeof r.values_allowed === "string"
+        ? JSON.parse(r.values_allowed)
+        : r.values_allowed;
+      allowedItems = Array.isArray(raw) ? raw : [];
+    } catch {
+      continue; // skip rows with malformed JSON
+    }
+    const allowed = allowedItems
+      .map((item) => (item.displayName ?? item.id ?? "").trim().toLowerCase())
+      .filter(Boolean);
+    if (allowed.length === 0) continue;
     const val = r.value.trim().toLowerCase();
     if (val && !allowed.includes(val)) {
       const dedupKey = `${r.plant_id}|${r.attribute_id}|${r.value}`;
@@ -338,7 +351,7 @@ export async function runInternalAudit(
           sourceValue: null,
           sourceId: r.source_id,
           batchId,
-          notes: `Value validation failure: "${r.value}" not in allowed set [${r.values_allowed}]`,
+          notes: `Value validation failure: "${r.value}" not in allowed set [${allowed.join(", ")}]`,
         });
       }
     }
