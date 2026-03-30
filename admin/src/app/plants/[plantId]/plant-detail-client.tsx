@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { PlantDetail, AttributeValueRow, PlantImage } from "@/lib/queries/plants";
+import type { PlantDetail, AttributeValueRow, PlantImage, SourceAttribution } from "@/lib/queries/plants";
 
 interface PlantDetailClientProps {
   data: PlantDetail;
@@ -375,16 +375,66 @@ function attrDisplayName(attr: AttributeValueRow): string {
   return attr.attribute_name;
 }
 
+// --- Source display ---
+
+function SourceDisplay({
+  attr,
+  sourcesByAttribute,
+}: {
+  attr: AttributeValueRow;
+  sourcesByAttribute: Record<string, SourceAttribution[]>;
+}) {
+  const sources = sourcesByAttribute[attr.attribute_id];
+
+  // If we have production source attributions, show those
+  if (sources && sources.length > 0) {
+    return (
+      <div className="mt-0.5 flex flex-wrap gap-1">
+        {sources.map((s) => (
+          <span
+            key={s.source_id}
+            className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
+          >
+            {s.source_name}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
+  // Fall back to inline source_name from the value row
+  if (attr.source_name) {
+    return (
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        Source: {attr.source_name}
+      </p>
+    );
+  }
+
+  // No source at all
+  if (!attr.value_notes?.startsWith("Calculated")) {
+    return (
+      <p className="mt-0.5 text-xs text-yellow-600 dark:text-yellow-400">
+        No source attribution
+      </p>
+    );
+  }
+
+  return null;
+}
+
 // --- Card View ---
 
 function CardView({
   groups,
   overlay,
   plantId,
+  sourcesByAttribute,
 }: {
   groups: CategoryGroup[];
   overlay: PlantDetail["overlay"];
   plantId: string;
+  sourcesByAttribute: Record<string, SourceAttribution[]>;
 }) {
   return (
     <div className="space-y-6">
@@ -412,11 +462,7 @@ function CardView({
                       <div className="mt-1 text-sm">
                         <AttrValueDisplay attr={attr} />
                       </div>
-                      {attr.source_name && (
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          Source: {attr.source_name}
-                        </p>
-                      )}
+                      <SourceDisplay attr={attr} sourcesByAttribute={sourcesByAttribute} />
                     </div>
                     <CurationBadges
                       attr={attr}
@@ -479,10 +525,12 @@ function ListView({
   groups,
   overlay,
   plantId,
+  sourcesByAttribute,
 }: {
   groups: CategoryGroup[];
   overlay: PlantDetail["overlay"];
   plantId: string;
+  sourcesByAttribute: Record<string, SourceAttribution[]>;
 }) {
   return (
     <div className="space-y-6">
@@ -527,14 +575,8 @@ function ListView({
                       <TableCell className="font-medium">
                         <AttrValueDisplay attr={attr} />
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {attr.source_name ? (
-                          attr.source_name
-                        ) : attr.value_notes?.startsWith("Calculated") ? (
-                          <span className="italic">calculated</span>
-                        ) : (
-                          <span className="italic">&mdash;</span>
-                        )}
+                      <TableCell className="text-sm">
+                        <SourceDisplay attr={attr} sourcesByAttribute={sourcesByAttribute} />
                       </TableCell>
                       <TableCell>
                         <CurationBadges
@@ -627,6 +669,7 @@ export function PlantDetailClient({ data }: PlantDetailClientProps) {
     plant,
     images,
     attributes,
+    sourcesByAttribute,
     categories,
     overlay,
     pendingSync,
@@ -737,6 +780,7 @@ export function PlantDetailClient({ data }: PlantDetailClientProps) {
               groups={groups}
               overlay={overlay}
               plantId={plant.id}
+              sourcesByAttribute={sourcesByAttribute}
             />
           </TabsContent>
 
@@ -745,6 +789,7 @@ export function PlantDetailClient({ data }: PlantDetailClientProps) {
               groups={groups}
               overlay={overlay}
               plantId={plant.id}
+              sourcesByAttribute={sourcesByAttribute}
             />
           </TabsContent>
         </Tabs>

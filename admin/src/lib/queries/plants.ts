@@ -162,6 +162,13 @@ export interface AttributeValueRow {
   is_calculated: boolean;
 }
 
+export interface SourceAttribution {
+  attribute_id: string;
+  source_id: string;
+  source_name: string;
+  source_value: string | null;
+}
+
 export interface CurationOverlay {
   warrantCounts: Record<string, number>;
   conflictCounts: Record<string, number>;
@@ -172,6 +179,8 @@ export interface PlantDetail {
   plant: PlantDetailIdentity;
   images: PlantImage[];
   attributes: AttributeValueRow[];
+  /** Sources that contributed data per attribute (from production values rows with source_id) */
+  sourcesByAttribute: Record<string, SourceAttribution[]>;
   categories: string[];
   overlay: CurationOverlay;
   pendingSync: boolean;
@@ -187,7 +196,7 @@ export async function fetchPlantDetail(
   const calcIds = [...CALCULATED_ATTRIBUTE_IDS];
   const calcPlaceholders = calcIds.map((_, i) => `$${i + 2}`).join(", ");
 
-  const [plant, images, attributes, warrantRows, conflictRows, claimRows] =
+  const [plant, images, attributes, sourceRows, warrantRows, conflictRows, claimRows] =
     await Promise.all([
       // 1. Plant identity — full row (Neon)
       queryProd<PlantDetailIdentity>(
@@ -248,16 +257,28 @@ export async function fetchPlantDetail(
         [plantId, ...calcIds]
       ),
 
-      // 4. Warrant counts per attribute (Dolt)
+      // 4. Source attributions — values rows that have source_id but no resolved value (Neon)
+      queryProd<SourceAttribution>(
+        `SELECT v.attribute_id, v.source_id, s.name AS source_name, v.source_value
+         FROM "values" v
+         JOIN sources s ON s.id = v.source_id
+         WHERE v.plant_id = $1
+           AND v.source_id IS NOT NULL
+         ORDER BY v.attribute_id, s.name`,
+        [plantId]
+      ),
+
+      // 5. Warrant counts per attribute, excluding INTERNAL_AUDIT (Dolt)
       query<{ attribute_id: string; count: number }>(
         `SELECT attribute_id, COUNT(*)::int AS count
          FROM warrants
          WHERE plant_id = $1 AND status != 'excluded'
+           AND source_id_code != 'INTERNAL_AUDIT'
          GROUP BY attribute_id`,
         [plantId]
       ),
 
-      // 5. Unresolved conflict counts per attribute (Dolt)
+      // 6. Unresolved conflict counts per attribute (Dolt)
       query<{ attribute_name: string; count: number }>(
         `SELECT attribute_name, COUNT(*)::int AS count
          FROM conflicts
@@ -266,7 +287,7 @@ export async function fetchPlantDetail(
         [plantId]
       ),
 
-      // 6. Pending claims per attribute (Dolt)
+      // 7. Pending claims per attribute (Dolt)
       query<{ attribute_id: string; id: string; status: string }>(
         `SELECT attribute_id, id, status
          FROM claims
@@ -276,6 +297,16 @@ export async function fetchPlantDetail(
     ]);
 
   if (!plant) return null;
+
+  // Build source attributions per attribute
+  const sourcesByAttribute: Record<string, SourceAttribution[]> = {};
+  for (const r of sourceRows) {
+    if (!sourcesByAttribute[r.attribute_id]) sourcesByAttribute[r.attribute_id] = [];
+    // Deduplicate by source_id
+    if (!sourcesByAttribute[r.attribute_id].some((s) => s.source_id === r.source_id)) {
+      sourcesByAttribute[r.attribute_id].push(r);
+    }
+  }
 
   // Build overlay records
   const warrantCounts: Record<string, number> = {};
@@ -312,6 +343,7 @@ export async function fetchPlantDetail(
     plant,
     images,
     attributes,
+    sourcesByAttribute,
     categories,
     overlay: { warrantCounts, conflictCounts, pendingClaims },
     pendingSync: pendingClaimCount > 0,

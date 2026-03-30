@@ -56,7 +56,10 @@ export function ClaimViewClient({
   attributeId,
 }: ClaimViewClientProps) {
   const router = useRouter();
-  const [warrants, setWarrants] = useState(data.warrants);
+  // Filter out INTERNAL_AUDIT warrants — they have no source or useful provenance
+  const [warrants, setWarrants] = useState(
+    data.warrants.filter((w) => w.source_id_code !== "INTERNAL_AUDIT")
+  );
   const [approvalNotes, setApprovalNotes] = useState("");
   const [synthesisResult, setSynthesisResult] = useState<{
     synthesized_text: string;
