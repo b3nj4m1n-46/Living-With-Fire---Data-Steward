@@ -1,6 +1,7 @@
 import { queryProd } from "@/lib/production";
 import { query } from "@/lib/dolt";
 import { KEY_ATTRIBUTE_IDS } from "@/lib/queries/coverage";
+import { CALCULATED_ATTRIBUTE_IDS } from "@/lib/attribute-map";
 
 // --- Types ---
 
@@ -128,7 +129,20 @@ export interface PlantDetailIdentity {
   genus: string;
   species: string;
   common_name: string | null;
+  subspecies_varieties: string | null;
+  urls: string | null;
+  notes: string | null;
   last_updated: string | null;
+}
+
+export interface PlantImage {
+  id: string;
+  image_url: string;
+  image_type: string | null;
+  source: string | null;
+  copyright: string | null;
+  is_primary: boolean;
+  match_score: number | null;
 }
 
 export interface AttributeValueRow {
@@ -136,12 +150,15 @@ export interface AttributeValueRow {
   attribute_name: string;
   attribute_notes: string | null;
   category: string | null;
+  parent_name: string | null;
+  value_type: string | null;
   value: string;
   source_value: string | null;
   value_notes: string | null;
   values_allowed: string | null;
   source_name: string | null;
   source_id: string | null;
+  is_calculated: boolean;
 }
 
 export interface CurationOverlay {
@@ -152,6 +169,7 @@ export interface CurationOverlay {
 
 export interface PlantDetail {
   plant: PlantDetailIdentity;
+  images: PlantImage[];
   attributes: AttributeValueRow[];
   categories: string[];
   overlay: CurationOverlay;
@@ -164,24 +182,43 @@ export interface PlantDetail {
 export async function fetchPlantDetail(
   plantId: string
 ): Promise<PlantDetail | null> {
-  const [plant, attributes, warrantRows, conflictRows, claimRows] =
+  // Build a set of calculated attribute IDs for the SQL filter
+  const calcIds = [...CALCULATED_ATTRIBUTE_IDS];
+  const calcPlaceholders = calcIds.map((_, i) => `$${i + 2}`).join(", ");
+
+  const [plant, images, attributes, warrantRows, conflictRows, claimRows] =
     await Promise.all([
-      // 1. Plant identity (Neon)
+      // 1. Plant identity — full row (Neon)
       queryProd<PlantDetailIdentity>(
-        `SELECT id, genus, species, common_name, last_updated
+        `SELECT id, genus, species, common_name,
+                subspecies_varieties, urls, notes, last_updated
          FROM plants WHERE id = $1`,
         [plantId]
       ).then((rows) => rows[0] ?? null),
 
-      // 2. All attribute values with category, source, and allowed values (Neon)
-      // Uses recursive CTE to walk up the attribute hierarchy to find the root category
+      // 2. Plant images (Neon)
+      queryProd<PlantImage>(
+        `SELECT id, image_url, image_type, source, copyright,
+                is_primary, match_score
+         FROM plant_images
+         WHERE plant_id = $1
+         ORDER BY is_primary DESC, match_score DESC NULLS LAST`,
+        [plantId]
+      ),
+
+      // 3. All attribute values with hierarchy, source, and allowed values (Neon)
+      // Walks up the attribute tree: root_name = top category, parent_name = immediate parent
       queryProd<AttributeValueRow>(
         `WITH RECURSIVE ancestors AS (
-           SELECT id, name, parent_attribute_id, name AS root_name
+           SELECT id, name, parent_attribute_id,
+                  name AS root_name,
+                  NULL::text AS parent_name
            FROM attributes
            WHERE parent_attribute_id IS NULL
            UNION ALL
-           SELECT a.id, a.name, a.parent_attribute_id, anc.root_name
+           SELECT a.id, a.name, a.parent_attribute_id,
+                  anc.root_name,
+                  anc.name AS parent_name
            FROM attributes a
            JOIN ancestors anc ON anc.id = a.parent_attribute_id
          )
@@ -190,23 +227,26 @@ export async function fetchPlantDetail(
            a.name AS attribute_name,
            a.notes AS attribute_notes,
            anc.root_name AS category,
+           anc.parent_name,
+           a.value_type,
            v."value",
            v.source_value,
            v.notes AS value_notes,
            a.values_allowed::text AS values_allowed,
            s.name AS source_name,
-           v.source_id
+           v.source_id,
+           CASE WHEN v.attribute_id IN (${calcPlaceholders}) THEN true ELSE false END AS is_calculated
          FROM "values" v
          JOIN attributes a ON a.id = v.attribute_id
          JOIN ancestors anc ON anc.id = a.id
          LEFT JOIN sources s ON s.id = v.source_id
          WHERE v.plant_id = $1
            AND NOT (COALESCE(v."value", '') = '' AND (v.source_value IS NULL OR v.source_value = '' OR v.source_value = 'x'))
-         ORDER BY anc.root_name, a.name`,
-        [plantId]
+         ORDER BY anc.root_name, anc.parent_name NULLS FIRST, a.name`,
+        [plantId, ...calcIds]
       ),
 
-      // 3. Warrant counts per attribute (Dolt)
+      // 4. Warrant counts per attribute (Dolt)
       query<{ attribute_id: string; count: number }>(
         `SELECT attribute_id, COUNT(*)::int AS count
          FROM warrants
@@ -215,7 +255,7 @@ export async function fetchPlantDetail(
         [plantId]
       ),
 
-      // 4. Unresolved conflict counts per attribute (Dolt)
+      // 5. Unresolved conflict counts per attribute (Dolt)
       query<{ attribute_name: string; count: number }>(
         `SELECT attribute_name, COUNT(*)::int AS count
          FROM conflicts
@@ -224,7 +264,7 @@ export async function fetchPlantDetail(
         [plantId]
       ),
 
-      // 5. Pending claims per attribute (Dolt)
+      // 6. Pending claims per attribute (Dolt)
       query<{ attribute_id: string; id: string; status: string }>(
         `SELECT attribute_id, id, status
          FROM claims
@@ -268,6 +308,7 @@ export async function fetchPlantDetail(
 
   return {
     plant,
+    images,
     attributes,
     categories,
     overlay: { warrantCounts, conflictCounts, pendingClaims },
