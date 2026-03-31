@@ -1,5 +1,6 @@
-import { readdir, readFile } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
+import Database from "better-sqlite3";
 
 // --- Shared constants ---
 
@@ -40,9 +41,16 @@ export async function parseDatasetMeta(
     ? parseInt(countMatch[1].replace(/,/g, ""), 10)
     : null;
 
-  // CSV row-count fallback when markdown metadata has no count
+  // Fallback chain: CSV rows → SQLite count
   if (plantCount === null) {
     plantCount = await countCsvRows(folder);
+  }
+  if (plantCount === null || plantCount <= 5) {
+    // CSV might be an LFS pointer or stub — try SQLite
+    const sqliteCount = await countSqliteRows(folder);
+    if (sqliteCount !== null && sqliteCount > (plantCount ?? 0)) {
+      plantCount = sqliteCount;
+    }
   }
 
   return { sourceId, plantCount };
@@ -105,8 +113,37 @@ async function readFirstLine(filePath: string): Promise<string | null> {
 async function countLines(filePath: string): Promise<number | null> {
   try {
     const content = await readFile(filePath, "utf-8");
+    // Detect Git LFS pointer files
+    if (content.startsWith("version https://git-lfs.github.com/")) {
+      return null;
+    }
     const lines = content.split("\n").filter((l) => l.trim().length > 0);
     return Math.max(0, lines.length - 1); // subtract header
+  } catch {
+    return null;
+  }
+}
+
+async function countSqliteRows(folder: string): Promise<number | null> {
+  const dbPath = resolve(folder, "plants.db");
+  try {
+    await stat(dbPath);
+  } catch {
+    return null;
+  }
+  try {
+    const db = new Database(dbPath, { readonly: true });
+    // Find the main data table (usually "plants")
+    const tables = db.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+    ).all() as { name: string }[];
+    const tableName =
+      tables.find((t) => t.name === "plants")?.name ??
+      tables.find((t) => t.name !== "sqlite_sequence")?.name;
+    if (!tableName) { db.close(); return null; }
+    const row = db.prepare(`SELECT COUNT(*) AS cnt FROM "${tableName}"`).get() as { cnt: number };
+    db.close();
+    return row.cnt;
   } catch {
     return null;
   }
