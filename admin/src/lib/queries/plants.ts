@@ -268,12 +268,11 @@ export async function fetchPlantDetail(
         [plantId]
       ),
 
-      // 5. Warrant counts per attribute, excluding INTERNAL_AUDIT (Dolt)
+      // 5. Warrant counts per attribute (Dolt)
       query<{ attribute_id: string; count: number }>(
         `SELECT attribute_id, COUNT(*)::int AS count
          FROM warrants
          WHERE plant_id = $1 AND status != 'excluded'
-           AND source_id_code != 'INTERNAL_AUDIT'
          GROUP BY attribute_id`,
         [plantId]
       ),
