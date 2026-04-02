@@ -26,7 +26,7 @@ const TREFLE_TOKEN = process.env.TREFLE_TOKEN;
 const NEON_URL = process.env.NEON_DATABASE_URL;
 const SOURCE_ID_CODE = 'TREFLE';
 const BATCH_SIZE = 50; // warrants per DB insert batch
-const API_DELAY_MS = 350; // ~3 requests/sec to stay under rate limits
+const API_DELAY_MS = 1000; // 1 request/sec — Trefle rate limit is 120/min
 
 // --- LWF Attribute UUIDs ---
 
@@ -136,19 +136,30 @@ async function fetchTrefleSpecies(
   const slug = `${genus}-${species}`.toLowerCase().replace(/\s+/g, '-');
   const url = `${TREFLE_BASE}/species/${slug}?token=${TREFLE_TOKEN}`;
 
-  try {
-    const res = await fetch(url);
-    if (res.status === 404) return null;
-    if (!res.ok) {
-      console.warn(`  Trefle ${res.status} for ${slug}`);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (res.status === 404) return null;
+      if (res.status === 429) {
+        // Rate limited — wait and retry
+        const wait = (attempt + 1) * 5000;
+        console.warn(`  Rate limited, waiting ${wait / 1000}s...`);
+        await sleep(wait);
+        continue;
+      }
+      if (!res.ok) {
+        console.warn(`  Trefle ${res.status} for ${slug}`);
+        return null;
+      }
+      const json = await res.json();
+      return json.data as TrefleSpecies;
+    } catch (err) {
+      console.warn(`  Trefle error for ${slug}: ${err}`);
       return null;
     }
-    const json = await res.json();
-    return json.data as TrefleSpecies;
-  } catch (err) {
-    console.warn(`  Trefle error for ${slug}: ${err}`);
-    return null;
   }
+  console.warn(`  Trefle gave up after 3 retries for ${slug}`);
+  return null;
 }
 
 function mapNativeStatus(distribution: string[] | null): string[] {
@@ -181,11 +192,12 @@ function mapFlowerColors(colors: string[] | null): { id: string; display: string
 }
 
 function mapGrowthHabits(
-  habits: string[] | null
+  habits: string[] | string | null
 ): { attrId: string; attrName: string; value: string }[] {
   if (!habits) return [];
+  const habitArr = Array.isArray(habits) ? habits : [habits];
   const results: { attrId: string; attrName: string; value: string }[] = [];
-  const lower = habits.map((h) => h.toLowerCase());
+  const lower = habitArr.map((h) => h.toLowerCase());
 
   if (lower.includes('tree')) results.push({ attrId: ATTR.tree.id, attrName: ATTR.tree.name, value: 'true' });
   if (lower.includes('shrub')) results.push({ attrId: ATTR.shrub.id, attrName: ATTR.shrub.name, value: 'true' });
@@ -256,7 +268,7 @@ function buildWarrants(
       attribute_id: h.attrId,
       attribute_name: h.attrName,
       value: h.value,
-      source_value: `growth_habit: ${(trefle.specifications?.growth_habit ?? []).join(', ')}`,
+      source_value: `growth_habit: ${[trefle.specifications?.growth_habit].flat().filter(Boolean).join(', ')}`,
     });
   }
 
@@ -326,11 +338,12 @@ async function main() {
   const { rows: plants } = await prodPool.query<ProductionPlant>(plantQuery);
   console.log(`Loaded ${plants.length} plants from production\n`);
 
-  // 2. Create batch record in Dolt
+  // 2. Create batch record in Dolt (skip connection in dry-run)
   const batchId = crypto.randomUUID();
-  const doltClient = await doltPool.connect();
+  let doltClient: import('pg').PoolClient | null = null;
 
   if (!dryRun) {
+    doltClient = await doltPool.connect();
     await doltClient.query('BEGIN');
     await doltClient.query(
       `INSERT INTO analysis_batches (id, source_dataset, source_id_code, batch_type, status)
@@ -406,7 +419,7 @@ async function main() {
     console.log(`\nWriting ${allWarrants.length} warrants to Dolt...`);
 
     try {
-      await doltClient.query('BEGIN');
+      await doltClient!.query('BEGIN');
 
       for (let i = 0; i < allWarrants.length; i += BATCH_SIZE) {
         const batch = allWarrants.slice(i, i + BATCH_SIZE);
@@ -437,7 +450,7 @@ async function main() {
           paramIdx += 13;
         }
 
-        await doltClient.query(
+        await doltClient!.query(
           `INSERT INTO warrants (
             id, warrant_type, status,
             plant_id, plant_genus, plant_species,
@@ -456,7 +469,7 @@ async function main() {
       }
 
       // Update batch record
-      await doltClient.query(
+      await doltClient!.query(
         `UPDATE analysis_batches
          SET status = $1, total_source_records = $2, plants_matched = $3, warrants_created = $4,
              completed_at = NOW()
@@ -464,11 +477,11 @@ async function main() {
         ['completed', plants.length, trefleHits, allWarrants.length, batchId]
       );
 
-      await doltClient.query('COMMIT');
+      await doltClient!.query('COMMIT');
 
       // Dolt commit
-      await doltClient.query(`SELECT dolt_add('.')`);
-      const commitResult = await doltClient.query(
+      await doltClient!.query(`SELECT dolt_add('.')`);
+      const commitResult = await doltClient!.query(
         `SELECT dolt_commit('-m', $1)`,
         [`Trefle enrichment: ${allWarrants.length} warrants for ${trefleHits} plants`]
       );
@@ -479,16 +492,16 @@ async function main() {
 
       console.log(`\nDolt commit: ${commitHash}`);
     } catch (err) {
-      await doltClient.query('ROLLBACK');
+      await doltClient!.query('ROLLBACK');
       console.error('Failed to write warrants:', err);
       process.exitCode = 1;
     }
   }
 
   console.log('\nDone.');
-  doltClient.release();
+  if (doltClient) doltClient.release();
   await prodPool.end();
-  await doltPool.end();
+  if (!dryRun) await doltPool.end();
 }
 
 main().catch((err) => {
