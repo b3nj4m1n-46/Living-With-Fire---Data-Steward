@@ -48,6 +48,43 @@ const MAPPING_TYPES = [
   "UNCERTAIN",
 ] as const;
 
+const MAPPING_DESCRIPTIONS: Record<string, { short: string; detail: string }> = {
+  DIRECT: {
+    short: "Maps 1:1 to a production attribute",
+    detail: "Source values transfer directly to the target attribute with no transformation needed.",
+  },
+  CROSSWALK: {
+    short: "Values need translation",
+    detail: "Source uses different values (e.g. \"High\"/\"Low\") that must be converted to the production scale. Edit the crosswalk to define the translation.",
+  },
+  SPLIT: {
+    short: "One column maps to multiple attributes",
+    detail: "This column encodes more than one concept and needs to be split into separate production attributes. Not yet supported for automatic warrant creation.",
+  },
+  NEW_ATTRIBUTE: {
+    short: "No matching production attribute exists",
+    detail: "This data doesn't fit any existing attribute. A new attribute would need to be created in the production schema to store it.",
+  },
+  SKIP: {
+    short: "Not a plant attribute \u2014 no warrant created",
+    detail: "This column is structural (e.g. a join key or plant identifier) and is used during matching, not stored as an attribute value.",
+  },
+  UNCERTAIN: {
+    short: "AI couldn't confidently map this column",
+    detail: "The mapping needs human review. The AI found a possible match but isn't confident enough to commit. Change to DIRECT, CROSSWALK, or SKIP after reviewing.",
+  },
+};
+
+/** Columns used by the matching pipeline to join source records to production plants. */
+const JOIN_KEY_COLUMNS = new Set([
+  "scientific_name", "botanical_name", "species", "taxon", "genus",
+  "usda_symbol", "common_name",
+]);
+
+function isJoinKey(column: string): boolean {
+  return JOIN_KEY_COLUMNS.has(column.toLowerCase());
+}
+
 // --- Helpers ---
 
 function confidenceVariant(c: number) {
@@ -256,20 +293,23 @@ export function FusionClient({ batch }: FusionClientProps) {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {(
           [
-            ["Direct", summary.direct, "default"],
-            ["Crosswalk", summary.crosswalk, "secondary"],
-            ["Split", summary.split, "secondary"],
-            ["New", summary.newAttribute, "secondary"],
-            ["Skip", summary.skip, "outline"],
-            ["Uncertain", summary.uncertain, "destructive"],
+            ["Direct", "DIRECT", summary.direct, "default"],
+            ["Crosswalk", "CROSSWALK", summary.crosswalk, "secondary"],
+            ["Split", "SPLIT", summary.split, "secondary"],
+            ["New", "NEW_ATTRIBUTE", summary.newAttribute, "secondary"],
+            ["Skip", "SKIP", summary.skip, "outline"],
+            ["Uncertain", "UNCERTAIN", summary.uncertain, "destructive"],
           ] as const
-        ).map(([label, count, variant]) => (
+        ).map(([label, key, count, variant]) => (
           <Card key={label}>
             <CardContent className="py-3 text-center">
               <p className="text-2xl font-bold">{count}</p>
               <Badge variant={variant} className="mt-1">
                 {label}
               </Badge>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {MAPPING_DESCRIPTIONS[key]?.short}
+              </p>
             </CardContent>
           </Card>
         ))}
@@ -407,14 +447,22 @@ export function FusionClient({ batch }: FusionClientProps) {
                       </span>
                       <p className="text-xs text-muted-foreground">
                         {m.sourceType}
+                        {m.sourceDefinition && ` \u2014 ${m.sourceDefinition}`}
                       </p>
                     </div>
                   </TableCell>
 
                   <TableCell>
-                    <Badge variant={mappingTypeColor(m.mappingType)}>
-                      {m.mappingType}
-                    </Badge>
+                    <div className="flex items-center gap-1.5">
+                      <Badge variant={mappingTypeColor(m.mappingType)}>
+                        {m.mappingType}
+                      </Badge>
+                      {isJoinKey(m.sourceColumn) && (
+                        <Badge variant="outline" className="border-blue-500 text-blue-600 text-xs">
+                          JOIN KEY
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
 
                   <TableCell>
@@ -532,6 +580,41 @@ export function FusionClient({ batch }: FusionClientProps) {
         </Card>
       )}
 
+      {/* Mapping Type Reference */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Mapping Types
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {MAPPING_TYPES.map((t) => (
+              <div key={t} className="space-y-1">
+                <Badge variant={mappingTypeColor(t)}>{t}</Badge>
+                <p className="text-sm font-medium">
+                  {MAPPING_DESCRIPTIONS[t]?.short}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {MAPPING_DESCRIPTIONS[t]?.detail}
+                </p>
+              </div>
+            ))}
+            <div className="space-y-1">
+              <Badge variant="outline" className="border-blue-500 text-blue-600">
+                JOIN KEY
+              </Badge>
+              <p className="text-sm font-medium">
+                Used to match source records to production plants
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Columns like scientific_name or usda_symbol are used by the matching pipeline to link source rows to production plants. They appear alongside SKIP because they aren&apos;t stored as attribute values.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Reasoning (collapsible per-row would be heavy, show at bottom) */}
       <Card>
         <CardHeader>
@@ -544,8 +627,16 @@ export function FusionClient({ batch }: FusionClientProps) {
             .filter((m) => m.reasoning)
             .map((m) => (
               <div key={m.sourceColumn}>
-                <p className="text-sm font-medium">{m.sourceColumn}</p>
-                <p className="text-xs text-muted-foreground">{m.reasoning}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium">{m.sourceColumn}</p>
+                  <Badge variant={mappingTypeColor(m.mappingType)} className="text-xs">
+                    {m.mappingType}
+                  </Badge>
+                </div>
+                <p className="mt-0.5 text-xs font-medium text-muted-foreground">
+                  {MAPPING_DESCRIPTIONS[m.mappingType]?.detail}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">{m.reasoning}</p>
                 {m.notes && (
                   <p className="text-xs italic text-muted-foreground">
                     {m.notes}
