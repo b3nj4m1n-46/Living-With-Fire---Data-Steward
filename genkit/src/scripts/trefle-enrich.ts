@@ -26,7 +26,7 @@ const TREFLE_TOKEN = process.env.TREFLE_TOKEN;
 const NEON_URL = process.env.NEON_DATABASE_URL;
 const SOURCE_ID_CODE = 'TREFLE';
 const BATCH_SIZE = 50; // warrants per DB insert batch
-const API_DELAY_MS = 1000; // 1 request/sec — Trefle rate limit is 120/min
+const API_DELAY_MS = 500; // 2 requests/sec — Trefle rate limit is 120/min
 
 // --- LWF Attribute UUIDs ---
 
