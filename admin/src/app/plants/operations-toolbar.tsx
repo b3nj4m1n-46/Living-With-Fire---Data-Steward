@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 
 interface AgentCounts {
   pendingConflicts: number;
-  unsynthesizedPairs: number;
   lastAudit: {
     batchId: string;
     completedAt: string;
@@ -35,8 +34,6 @@ function batchTypeLabel(type: string): string {
       return "Internal Audit";
     case "classify_existing":
       return "Conflict Classification";
-    case "bulk_synthesize":
-      return "Claim Synthesis";
     default:
       return type;
   }
@@ -135,35 +132,12 @@ export function OperationsToolbar() {
     }
   }
 
-  async function runSynthesize() {
-    setLaunching("synthesize");
-    try {
-      const res = await fetch("/api/agents/synthesize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ limit: 100 }),
-      });
-      if (res.status === 409) {
-        setLaunching(null);
-        return;
-      }
-      if (res.ok) await fetchStatus();
-    } catch {
-      // ignore
-    } finally {
-      setLaunching(null);
-    }
-  }
-
   const isAuditRunning =
     launching === "audit" ||
     running.some((b) => b.batch_type === "internal_audit");
   const isClassifyRunning =
     launching === "classify" ||
     running.some((b) => b.batch_type === "classify_existing");
-  const isSynthesizeRunning =
-    launching === "synthesize" ||
-    running.some((b) => b.batch_type === "bulk_synthesize");
 
   const anyRunning = running.length > 0 || !!launching;
 
@@ -183,19 +157,6 @@ export function OperationsToolbar() {
         {counts && counts.pendingConflicts > 0 && !isClassifyRunning && (
           <Badge variant="secondary" className="ml-1.5">
             {counts.pendingConflicts}
-          </Badge>
-        )}
-      </Button>
-      <Button
-        onClick={runSynthesize}
-        disabled={
-          isSynthesizeRunning || (counts?.unsynthesizedPairs ?? 0) === 0
-        }
-      >
-        {isSynthesizeRunning ? "Synthesizing..." : "Synthesize Claims"}
-        {counts && counts.unsynthesizedPairs > 0 && !isSynthesizeRunning && (
-          <Badge variant="secondary" className="ml-1.5">
-            {counts.unsynthesizedPairs}
           </Badge>
         )}
       </Button>

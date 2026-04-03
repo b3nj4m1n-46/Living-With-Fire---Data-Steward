@@ -14,7 +14,6 @@ interface SummaryData {
   avgCompleteness: number;
   lowCoverageCount: number;
   pendingConflicts: number;
-  unsynthesizedPairs: number;
 }
 
 export function CoverageSummaryCards() {
@@ -44,7 +43,6 @@ export function CoverageSummaryCards() {
         avgCompleteness: avgCoverage,
         lowCoverageCount: lowCount,
         pendingConflicts: counts.pendingConflicts ?? 0,
-        unsynthesizedPairs: counts.unsynthesizedPairs ?? 0,
       });
     }).catch(() => {
       // ignore — cards just won't render
@@ -75,9 +73,9 @@ export function CoverageSummaryCards() {
       warn: data.lowCoverageCount > 0,
     },
     {
-      label: "Pending / Unsynthesized",
-      value: `${data.pendingConflicts} / ${data.unsynthesizedPairs}`,
-      warn: data.pendingConflicts > 0 || data.unsynthesizedPairs > 0,
+      label: "Pending Conflicts",
+      value: data.pendingConflicts.toString(),
+      warn: data.pendingConflicts > 0,
     },
   ];
 
