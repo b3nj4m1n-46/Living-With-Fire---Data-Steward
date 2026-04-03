@@ -2,14 +2,16 @@
 
 > **Status:** TODO
 > **Priority:** P1 (important)
-> **Depends on:** 028a-plant-browser, 037-api-enrichment-pipeline
-> **Blocks:** Efficient curation workflow after enrichment runs
+> **Depends on:** 028a-plant-browser, 021-table-fusion-ui
+> **Blocks:** Efficient curation workflow after any data ingestion
 
 ## Problem
 
-After running enrichment scripts (e.g., Trefle → 1,795 warrants across 823 plants), there is no way to tell which plants have new, unreviewed evidence available. The plant browser shows attribute counts and completeness but nothing about pending warrants needing attention.
+After any data ingestion — fusing a source dataset via `/fusion`, running an API enrichment script, or manual edits — new unreviewed warrants are created in Dolt. There is no way to tell which plants have new, unreviewed evidence available.
 
-A curator looking at `/plants` has to click into each plant individually and check for warrant badges — with 1,361 plants, this is impractical. They need to see at a glance: "these 823 plants have new data from Trefle that needs review."
+The plant browser shows attribute counts and completeness but nothing about pending warrants needing attention. A curator looking at `/plants` has to click into each plant individually and check for warrant badges — with 1,361 plants, this is impractical.
+
+Whether the warrants came from fusing FIRE-01, enriching from Trefle, or a cross-source conflict scan, the curator needs to see at a glance: "these plants have new data that needs review."
 
 ## Current Implementation
 
@@ -57,14 +59,15 @@ Allow filtering the plant list by warrant source:
 - "Has unreviewed warrants"
 - "Needs review" (unreviewed > 0)
 
-This lets a curator say "show me all plants that got new data from the Trefle enrichment run."
+This lets a curator say "show me all plants that got new data from the last fusion run" or "show me everything from Trefle."
 
-### 3. Optional: Enrichment Summary Banner
+### 3. Optional: Post-Ingestion Summary Banner
 
-After an enrichment run, show a dismissable banner on the plants page:
+After any ingestion (fusion or enrichment), show a dismissable banner on the plants page:
+> "FIRE-01 fusion added 412 warrants across 320 plants. [Review →]"
 > "Trefle enrichment added 1,795 warrants across 823 plants. [Review →]"
 
-This provides immediate context after a batch operation.
+Sourced from the `analysis_batches` table — show the most recent completed batch.
 
 ### What Does NOT Change
 
@@ -90,9 +93,11 @@ This provides immediate context after a batch operation.
 
 ## Verification
 
-1. Run Trefle enrichment → 823 plants get warrants
+1. Fuse any dataset via `/fusion` (e.g., FIRE-01) → plants get warrants
 2. Open `/plants` → see "New Evidence" column with counts
 3. Sort by "New Evidence" descending → plants with most warrants appear first
-4. Click into a plant → see warrant badges on attributes
-5. Review and include/exclude warrants → unreviewed count decreases
-6. After full review, plant shows 0 in the "New Evidence" column
+4. Filter by source → "show me only FIRE-01 warrants"
+5. Click into a plant → see warrant badges on attributes
+6. Review and include/exclude warrants → unreviewed count decreases
+7. After full review, plant shows 0 in the "New Evidence" column
+8. Run API enrichment (e.g., Trefle) → same flow, new warrants appear
